@@ -1,13 +1,13 @@
 SET(SOURCES screens/ui_Presentacion.c
-    screens/ui_Screen2.c
-    screens/ui_Screen1.c
-    screens/ui_Screen4.c
+    screens/ui_ModoTrabajo.c
+    screens/ui_Perfil.c
+    screens/ui_Trabajando.c
     ui.c
     components/ui_comp_hook.c
     ui_helpers.c
     images/ui_img_iso_teslagen_png.c
     images/ui_img_icono_configuracion_small_png.c
-    fonts/ui_font_PoppinsBlack40.c
-    fonts/ui_font_PoppinsBlack25.c)
+    fonts/ui_font_PoppinsBlack25.c
+    fonts/ui_font_PoppinsBlack40.c)
 
 add_library(ui ${SOURCES})

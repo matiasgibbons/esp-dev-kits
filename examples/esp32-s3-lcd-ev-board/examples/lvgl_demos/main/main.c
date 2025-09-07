@@ -12,7 +12,7 @@
 #include "bsp/esp-bsp.h"
 #include "ui_printer.h"
 #include "ui_tuner.h"
-#include "ui_txl_test1/ui.h"
+#include "ui_eez_test1/src/ui/ui.h"
 
 static char *TAG = "app_main";
 
@@ -59,26 +59,36 @@ void app_main(void)
     /* Release the lock */
     bsp_display_unlock();
 
-#if LOG_MEM_INFO
-    static char buffer[128];    /* Make sure buffer is enough for `sprintf` */
+    /* Main UI loop - call ui_tick() periodically to handle events */
     while (1) {
-        /**
-         * It's not recommended to frequently use functions like `heap_caps_get_free_size()` to obtain memory information
-         * in practical applications, especially when the application extensively uses `malloc()` to dynamically allocate
-         * a significant number of memory blocks. The frequent interrupt disabling may potentially lead to issues with other functionalities.
-         */
-        sprintf(buffer, "   Biggest /     Free /    Total\n"
-                "\t  SRAM : [%8d / %8d / %8d]\n"
-                "\t PSRAM : [%8d / %8d / %8d]",
-                heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
-                heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
-                heap_caps_get_total_size(MALLOC_CAP_INTERNAL),
-                heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM),
-                heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
-                heap_caps_get_total_size(MALLOC_CAP_SPIRAM));
-        ESP_LOGI("MEM", "%s", buffer);
-
-        vTaskDelay(pdMS_TO_TICKS(5000));
-    }
+        bsp_display_lock(0);
+        ui_tick();  /* Process UI events and update screens */
+        bsp_display_unlock();
+        
+#if LOG_MEM_INFO
+        /* Log memory info every 5 seconds (500 * 10ms) */
+        static int mem_log_counter = 0;
+        if (++mem_log_counter >= 500) {
+            mem_log_counter = 0;
+            static char buffer[128];    /* Make sure buffer is enough for `sprintf` */
+            /**
+             * It's not recommended to frequently use functions like `heap_caps_get_free_size()` to obtain memory information
+             * in practical applications, especially when the application extensively uses `malloc()` to dynamically allocate
+             * a significant number of memory blocks. The frequent interrupt disabling may potentially lead to issues with other functionalities.
+             */
+            sprintf(buffer, "   Biggest /     Free /    Total\n"
+                    "\t  SRAM : [%8d / %8d / %8d]\n"
+                    "\t PSRAM : [%8d / %8d / %8d]",
+                    heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
+                    heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
+                    heap_caps_get_total_size(MALLOC_CAP_INTERNAL),
+                    heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM),
+                    heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
+                    heap_caps_get_total_size(MALLOC_CAP_SPIRAM));
+            ESP_LOGI("MEM", "%s", buffer);
+        }
 #endif
+        
+        vTaskDelay(pdMS_TO_TICKS(10));  /* Delay 10ms between updates */
+    }
 }
