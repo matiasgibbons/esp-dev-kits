@@ -8,10 +8,7 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 
-#include "lv_demos.h"
 #include "bsp/esp-bsp.h"
-#include "ui_printer.h"
-#include "ui_tuner.h"
 #include "ui_eez_test1/src/ui/ui.h"
 
 static char *TAG = "app_main";
@@ -40,21 +37,8 @@ void app_main(void)
      */
     bsp_display_lock(0);
 
-    /* Here're four internal demos of LVGL. They can run with all subboards */
-    // lv_demo_music();        /* A modern, smartphone-like music player demo */
-    // lv_demo_widgets();      /* A widgets example */
-    // lv_demo_stress();       /* A stress test for LVGL */
-    // lv_demo_benchmark();    /* A demo to measure the performance of LVGL or to compare different settings */
-
-    /* Here're two UI demos created by Squareline Studio. They can only run with subboard3(800x480) */
-    // ui_printer_init();         /* A demo to show virtual printer */
-    
-    /* Your custom SquareLine UI */
-    ui_init();              /* Initialize your custom UI from SquareLine Studio */
-#ifndef CONFIG_BSP_DISPLAY_LVGL_AVOID_TEAR
-    // bsp_display_rotate(disp, LV_DISP_ROT_90);   /* Rotate screen from 800*480 to 480*800, it can't work with anti-tearing function */
-    // ui_tuner_init();                            /* A demo to show virtual tuner */
-#endif
+    /* Initialize your custom EEZ Studio UI */
+    ui_init();
 
     /* Release the lock */
     bsp_display_unlock();
