@@ -14,7 +14,9 @@
       "displayWidth": 480,
       "displayHeight": 480,
       "displayBorderRadius": 0,
+      "darkTheme": false,
       "colorFormat": "BGR",
+      "author": "Matias Gibbons",
       "resourceFiles": [],
       "hiddenWidgetLines": "dimmed",
       "dimmedLinesOpacity": "20"
@@ -90,7 +92,7 @@
         }
       ],
       "destinationFolder": "src\\ui",
-      "separateFolderForImagesAndFonts": false,
+      "separateFolderForImagesAndFonts": true,
       "imageExportMode": "source",
       "fontExportMode": "source",
       "fileSystemPath": "",
@@ -108,6 +110,13 @@
       {
         "objID": "f6187945-79ff-4d23-9fe5-09aa269fcce8",
         "name": "potencia",
+        "type": "integer",
+        "defaultValue": "0",
+        "persistent": false
+      },
+      {
+        "objID": "e9e602db-171e-4179-eceb-1cb29e9f9093",
+        "name": "tiemposesion",
         "type": "integer",
         "defaultValue": "0",
         "persistent": false
@@ -1122,6 +1131,98 @@
                     }
                   }
                 }
+              },
+              "group": "",
+              "groupIndex": 0
+            },
+            {
+              "objID": "db82adb2-4afa-42a4-e05e-a8645b3beaf3",
+              "type": "LVGLButtonWidget",
+              "left": 290,
+              "top": 240,
+              "width": 100,
+              "height": 50,
+              "customInputs": [],
+              "customOutputs": [],
+              "style": {
+                "objID": "49ee8ad6-cb5d-442d-b1e3-2025ad015f31",
+                "useStyle": "default",
+                "conditionalStyles": [],
+                "childStyles": []
+              },
+              "timeline": [],
+              "eventHandlers": [],
+              "leftUnit": "px",
+              "topUnit": "px",
+              "widthUnit": "px",
+              "heightUnit": "px",
+              "children": [
+                {
+                  "objID": "d6637cb8-b427-42d9-c456-3444ff66a88d",
+                  "type": "LVGLLabelWidget",
+                  "left": 0,
+                  "top": 0,
+                  "width": 87,
+                  "height": 43,
+                  "customInputs": [],
+                  "customOutputs": [],
+                  "style": {
+                    "objID": "5fbfeb0b-8905-41f8-80f5-7b42b3d2786b",
+                    "useStyle": "default",
+                    "conditionalStyles": [],
+                    "childStyles": []
+                  },
+                  "timeline": [],
+                  "eventHandlers": [],
+                  "identifier": "TiempoSesion",
+                  "leftUnit": "px",
+                  "topUnit": "px",
+                  "widthUnit": "content",
+                  "heightUnit": "content",
+                  "children": [],
+                  "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLLABLE|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_WITH_ARROW|SNAPPABLE",
+                  "hiddenFlagType": "literal",
+                  "clickableFlagType": "literal",
+                  "flagScrollbarMode": "",
+                  "flagScrollDirection": "",
+                  "scrollSnapX": "",
+                  "scrollSnapY": "",
+                  "checkedStateType": "literal",
+                  "disabledStateType": "literal",
+                  "states": "",
+                  "localStyles": {
+                    "objID": "a9dbb31b-1cc5-4d98-d79e-8b492f16d6af",
+                    "definition": {
+                      "MAIN": {
+                        "DEFAULT": {
+                          "align": "CENTER",
+                          "text_font": "Poppins35"
+                        }
+                      }
+                    }
+                  },
+                  "group": "",
+                  "groupIndex": 0,
+                  "text": "tiemposesion",
+                  "textType": "expression",
+                  "longMode": "WRAP",
+                  "recolor": false,
+                  "previewValue": "10:00"
+                }
+              ],
+              "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_ON_FOCUS|SCROLL_WITH_ARROW|SNAPPABLE",
+              "hiddenFlagType": "literal",
+              "clickableFlag": true,
+              "clickableFlagType": "literal",
+              "flagScrollbarMode": "",
+              "flagScrollDirection": "",
+              "scrollSnapX": "",
+              "scrollSnapY": "",
+              "checkedStateType": "literal",
+              "disabledStateType": "literal",
+              "states": "",
+              "localStyles": {
+                "objID": "fb6fd832-36b3-441e-9393-85fa44fbc564"
               },
               "group": "",
               "groupIndex": 0
