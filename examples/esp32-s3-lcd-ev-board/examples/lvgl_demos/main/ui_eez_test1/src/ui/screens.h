@@ -22,6 +22,7 @@ typedef struct _objects_t {
     lv_obj_t *potencia_valor;
     lv_obj_t *obj7;
     lv_obj_t *obj8;
+    lv_obj_t *tiempo_sesion;
 } objects_t;
 
 extern objects_t objects;

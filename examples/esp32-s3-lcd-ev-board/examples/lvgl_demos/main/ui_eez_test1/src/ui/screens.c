@@ -60,10 +60,10 @@ void create_screen_main() {
     {
         lv_obj_t *parent_obj = obj;
         {
-            lv_obj_t *obj = lv_img_create(parent_obj);
+            lv_obj_t *obj = lv_image_create(parent_obj);
             lv_obj_set_pos(obj, 29, 295);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-            lv_img_set_src(obj, &img_tesla_gen);
+            lv_image_set_src(obj, &img_tesla_gen);
         }
         {
             lv_obj_t *obj = lv_obj_create(parent_obj);
@@ -84,10 +84,10 @@ void create_screen_main() {
             lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
         }
         {
-            lv_obj_t *obj = lv_img_create(parent_obj);
+            lv_obj_t *obj = lv_image_create(parent_obj);
             lv_obj_set_pos(obj, 167, 117);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-            lv_img_set_src(obj, &img_iso_texel);
+            lv_image_set_src(obj, &img_iso_texel);
         }
         {
             lv_obj_t *obj = lv_label_create(parent_obj);
@@ -130,9 +130,10 @@ void create_screen_perfil() {
             lv_textarea_set_max_length(obj, 128);
             lv_textarea_set_one_line(obj, false);
             lv_textarea_set_password_mode(obj, false);
+            lv_obj_add_flag(obj, LV_OBJ_FLAG_SCROLL_WITH_ARROW);
         }
         {
-            lv_obj_t *obj = lv_btn_create(parent_obj);
+            lv_obj_t *obj = lv_button_create(parent_obj);
             objects.obj0 = obj;
             lv_obj_set_pos(obj, 352, 95);
             lv_obj_set_size(obj, 100, 50);
@@ -193,7 +194,7 @@ void create_screen_trabajando() {
             lv_obj_set_size(obj, 416, 33);
             lv_obj_add_event_cb(obj, event_handler_cb_trabajando_obj6, LV_EVENT_ALL, flowState);
             lv_obj_add_flag(obj, LV_OBJ_FLAG_ADV_HITTEST);
-            lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLL_ELASTIC|LV_OBJ_FLAG_SCROLL_MOMENTUM|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
+            lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLL_CHAIN_VER|LV_OBJ_FLAG_SCROLL_ELASTIC|LV_OBJ_FLAG_SCROLL_MOMENTUM|LV_OBJ_FLAG_SCROLL_ON_FOCUS|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
             {
                 lv_obj_t *parent_obj = obj;
                 {
@@ -206,7 +207,7 @@ void create_screen_trabajando() {
             }
         }
         {
-            lv_obj_t *obj = lv_btn_create(parent_obj);
+            lv_obj_t *obj = lv_button_create(parent_obj);
             lv_obj_set_pos(obj, 190, 106);
             lv_obj_set_size(obj, 100, 50);
             {
@@ -241,6 +242,24 @@ void create_screen_trabajando() {
             lv_obj_set_style_radius(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
         }
+        {
+            lv_obj_t *obj = lv_button_create(parent_obj);
+            lv_obj_set_pos(obj, 290, 240);
+            lv_obj_set_size(obj, 100, 50);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    // TiempoSesion
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    objects.tiempo_sesion = obj;
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_text_font(obj, &ui_font_poppins35, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text(obj, "");
+                }
+            }
+        }
     }
     
     tick_screen_trabajando();
@@ -267,11 +286,20 @@ void tick_screen_trabajando() {
             tick_value_change_obj = NULL;
         }
     }
+    {
+        const char *new_val = evalTextProperty(flowState, 8, 3, "Failed to evaluate Text in Label widget");
+        const char *cur_val = lv_label_get_text(objects.tiempo_sesion);
+        if (strcmp(new_val, cur_val) != 0) {
+            tick_value_change_obj = objects.tiempo_sesion;
+            lv_label_set_text(objects.tiempo_sesion, new_val);
+            tick_value_change_obj = NULL;
+        }
+    }
 }
 
 
 static const char *screen_names[] = { "Main", "Perfil", "Trabajando" };
-static const char *object_names[] = { "main", "perfil", "trabajando", "obj0", "obj1", "obj2", "ta1", "obj3", "obj4", "obj5", "obj6", "potencia_valor", "obj7", "obj8" };
+static const char *object_names[] = { "main", "perfil", "trabajando", "obj0", "obj1", "obj2", "ta1", "obj3", "obj4", "obj5", "obj6", "potencia_valor", "obj7", "obj8", "tiempo_sesion" };
 
 
 typedef void (*tick_screen_func_t)();
@@ -292,7 +320,7 @@ void create_screens() {
     eez_flow_init_object_names(object_names, sizeof(object_names) / sizeof(const char *));
     
     lv_disp_t *dispp = lv_disp_get_default();
-    lv_theme_t *theme = lv_theme_default_init(dispp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), true, LV_FONT_DEFAULT);
+    lv_theme_t *theme = lv_theme_default_init(dispp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), false, LV_FONT_DEFAULT);
     lv_disp_set_theme(dispp, theme);
     
     create_screen_main();

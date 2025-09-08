@@ -1,5 +1,7 @@
 {
   "navigation": {
+    "selectedUserPageObject": "[tets1.eez-project]:/userPages/2",
+    "selectedFontObject": "[tets1.eez-project]:/fonts/0",
     "subnavigationSelectedItems": {}
   },
   "layoutModel": {
@@ -20,6 +22,7 @@
           },
           {
             "type": "border",
+            "selected": 1,
             "size": 240,
             "location": "right",
             "children": [
@@ -75,6 +78,7 @@
           },
           {
             "type": "border",
+            "selected": 1,
             "location": "bottom",
             "children": [
               {
@@ -192,20 +196,21 @@
             {
               "type": "tabset",
               "id": "EDITORS",
-              "weight": 65,
+              "weight": 63.20043103448276,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
                 {
                   "type": "tab",
-                  "id": "#058ac8e8-6781-4b81-87cc-c8eb809e5d82",
-                  "name": "Main",
+                  "id": "#7fb158ec-c5f6-4f8d-b239-b0a113a6811f",
+                  "name": "Settings",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[tets1.eez-project]:/userPages/0",
+                    "objectPath": "[tets1.eez-project]:/settings",
+                    "subObjectPath": "[tets1.eez-project]:/settings",
                     "permanent": false
                   },
-                  "icon": "svg:page"
+                  "icon": "material:settings"
                 }
               ],
               "active": true
@@ -213,7 +218,7 @@
             {
               "type": "row",
               "id": "#2e2e206f-6c1d-45a1-a0e1-4b7b25f2efa7",
-              "weight": 20,
+              "weight": 21.799568965517242,
               "children": [
                 {
                   "type": "tabset",
@@ -448,10 +453,22 @@
               "type": "tabset",
               "id": "RUNTIME-EDITORS",
               "weight": 1,
-              "selected": -1,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
-              "children": []
+              "children": [
+                {
+                  "type": "tab",
+                  "id": "#cc0bc2f2-cd8c-41f7-9b16-1c8d10bd0e9a",
+                  "name": "Trabajando",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[tets1.eez-project]:/userPages/2",
+                    "permanent": false
+                  },
+                  "icon": "svg:page"
+                }
+              ],
+              "active": true
             },
             {
               "type": "row",
@@ -607,7 +624,8 @@
                   "component": "editor",
                   "enableClose": false
                 }
-              ]
+              ],
+              "active": true
             }
           ]
         }
@@ -996,6 +1014,7 @@
   "searchMatchWholeWord": false,
   "replaceEnabled": false,
   "replaceText": "",
+  "pageRuntimeFrontFace": true,
   "breakpoints": {},
   "watchExpressions": [],
   "showComponentDescriptions": true,
