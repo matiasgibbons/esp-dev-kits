@@ -10,6 +10,10 @@
 
 #include "bsp/esp-bsp.h"
 #include "ui_eez_test1/src/ui/ui.h"
+#include "app/settings.h"
+#include "app/app_wifi.h"
+#include "app/app_weather.h"
+#include "app/ui_bridge.h"
 
 static char *TAG = "app_main";
 
@@ -18,6 +22,16 @@ static char *TAG = "app_main";
 
 void app_main(void)
 {
+    // Inicializar configuraciones y WiFi
+    ESP_LOGI(TAG, "Initializing settings...");
+    ESP_ERROR_CHECK(settings_init());
+    
+    ESP_LOGI(TAG, "Initializing weather module...");
+    ESP_ERROR_CHECK(app_weather_init());
+    
+    ESP_LOGI(TAG, "Starting WiFi network...");
+    app_network_start();
+    
     bsp_i2c_init();
     lv_disp_t *disp = bsp_display_start();
 
@@ -39,6 +53,9 @@ void app_main(void)
 
     /* Initialize your custom EEZ Studio UI */
     ui_init();
+    
+    /* Initialize UI Bridge for WiFi integration */
+    ui_bridge_init();
 
     /* Release the lock */
     bsp_display_unlock();
@@ -47,6 +64,10 @@ void app_main(void)
     while (1) {
         bsp_display_lock(0);
         ui_tick();  /* Process UI events and update screens */
+        
+        /* Process WiFi UI updates */
+        ui_bridge_process_wifi_updates();
+        
         bsp_display_unlock();
         
 #if LOG_MEM_INFO

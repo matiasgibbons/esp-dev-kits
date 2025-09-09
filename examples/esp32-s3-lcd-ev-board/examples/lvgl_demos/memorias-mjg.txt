@@ -1,0 +1,10 @@
+C:\Users\matig\esp\v5.5.1\esp-idf\export.ps1
+
+
+
+
+# Cualquiera de estos comandos regenera sdkconfig:
+idf.py menuconfig     # Abre interfaz gráfica de configuración
+idf.py build          # Genera automáticamente si no existe
+idf.py reconfigure    # Fuerza regeneración completa
+idf.py save-defconfig # Se guarda en sdkconfig.defaults
