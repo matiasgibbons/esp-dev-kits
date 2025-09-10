@@ -7,13 +7,17 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
-
 #include "bsp/esp-bsp.h"
-#include "ui_eez_test1/src/ui/ui.h"
-#include "app/settings.h"
-#include "app/app_wifi.h"
-#include "app/app_weather.h"
-#include "app/ui_bridge.h"
+
+#include "ui.h"
+
+#include "settings.h"
+#include "app_wifi.h"
+#include "app_weather.h"
+
+#include "ui_weather_bridge.h"
+#include "ui_wifi_bridge.h"
+#include "task_manager.h"
 
 static char *TAG = "app_main";
 
@@ -56,19 +60,26 @@ void app_main(void)
     
     /* Initialize UI Bridge for WiFi integration */
     ui_bridge_init();
+    
+    /* Initialize UI Bridge for Weather integration */
+    ui_weather_bridge_init();
 
     /* Release the lock */
     bsp_display_unlock();
 
-    /* Main UI loop - call ui_tick() periodically to handle events */
+    /* Initialize and start the task manager */
+    ESP_LOGI(TAG, "Starting task manager...");
+    ESP_ERROR_CHECK(task_manager_init());
+    
+    /* Main task becomes idle - all work is now done by dedicated tasks */
+    ESP_LOGI(TAG, "System initialized successfully. Main task going idle.");
+    
     while (1) {
-        bsp_display_lock(0);
-        ui_tick();  /* Process UI events and update screens */
+        // El main task ahora solo hace monitoreo básico
+        vTaskDelay(pdMS_TO_TICKS(60000));  // Delay 1 minuto
         
-        /* Process WiFi UI updates */
-        ui_bridge_process_wifi_updates();
-        
-        bsp_display_unlock();
+        // Log periódico del estado del sistema
+        ESP_LOGI(TAG, "System alive - Free heap: %u bytes", esp_get_free_heap_size());
         
 #if LOG_MEM_INFO
         /* Log memory info every 5 seconds (500 * 10ms) */
