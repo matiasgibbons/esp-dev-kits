@@ -110,6 +110,94 @@ void ui_weather_bridge_update_temperature(int32_t temperature)
     ESP_LOGI(TAG, "Temperature updated successfully");
 }
 
+void ui_weather_bridge_update_humidity(int32_t humidity)
+{
+    ESP_LOGI(TAG, "Updating humidity: %d%%", (int)humidity);
+    
+    // Verificar que el objeto etiqueta_humedad existe
+    if (objects.etiqueta_humedad == NULL) {
+        ESP_LOGW(TAG, "Humidity label object not available");
+        return;
+    }
+    
+    // Formatear humedad
+    char humidity_text[32];
+    snprintf(humidity_text, sizeof(humidity_text), "Humedad: %d%%", (int)humidity);
+    
+    lv_label_set_text(objects.etiqueta_humedad, humidity_text);
+    
+    ESP_LOGI(TAG, "Humidity updated successfully");
+}
+
+void ui_weather_bridge_update_condition(const char* condition)
+{
+    ESP_LOGI(TAG, "Updating weather condition: %s", condition ? condition : "N/A");
+    
+    // Verificar que el objeto etiqueta_condicion_ambiental existe
+    if (objects.etiqueta_condicion_ambiental == NULL) {
+        ESP_LOGW(TAG, "Weather condition label object not available");
+        return;
+    }
+    
+    // Formatear condición ambiental
+    char condition_text[96];
+    if (condition && strlen(condition) > 0) {
+        snprintf(condition_text, sizeof(condition_text), "Condicion: %s", condition);
+    } else {
+        snprintf(condition_text, sizeof(condition_text), "Condicion: N/A");
+    }
+    
+    lv_label_set_text(objects.etiqueta_condicion_ambiental, condition_text);
+    
+    ESP_LOGI(TAG, "Weather condition updated successfully");
+}
+
+void ui_weather_bridge_update_measurement_time(const char* last_update)
+{
+    ESP_LOGI(TAG, "Updating measurement time: %s", last_update ? last_update : "N/A");
+    
+    // Verificar que el objeto etiqueta_hora_medicion existe
+    if (objects.etiqueta_hora_medicion == NULL) {
+        ESP_LOGW(TAG, "Measurement time label object not available");
+        return;
+    }
+    
+    // Formatear hora de medición
+    char time_text[96];
+    if (last_update && strlen(last_update) > 0) {
+        snprintf(time_text, sizeof(time_text), "Actualizado: %s", last_update);
+    } else {
+        snprintf(time_text, sizeof(time_text), "Actualizado: N/A");
+    }
+    
+    lv_label_set_text(objects.etiqueta_hora_medicion, time_text);
+    
+    ESP_LOGI(TAG, "Measurement time updated successfully");
+}
+
+void ui_weather_bridge_update_location(const char* location)
+{
+    ESP_LOGI(TAG, "Updating location: %s", location ? location : "N/A");
+    
+    // Verificar que el objeto label_ubicacion existe
+    if (objects.label_ubicacion == NULL) {
+        ESP_LOGW(TAG, "Location label object not available");
+        return;
+    }
+    
+    // Formatear ubicación
+    char location_text[96];
+    if (location && strlen(location) > 0) {
+        snprintf(location_text, sizeof(location_text), "Ubicacion: %s", location);
+    } else {
+        snprintf(location_text, sizeof(location_text), "Ubicacion: N/A");
+    }
+    
+    lv_label_set_text(objects.label_ubicacion, location_text);
+    
+    ESP_LOGI(TAG, "Location updated successfully");
+}
+
 void ui_weather_bridge_update_weather_info(weather_location_t location)
 {
     ESP_LOGI(TAG, "Updating weather info for location: %d", location);
@@ -124,17 +212,22 @@ void ui_weather_bridge_update_weather_info(weather_location_t location)
         return;
     }
     
-    // Actualizar temperatura
+    // Actualizar todas las etiquetas del clima
     ui_weather_bridge_update_temperature(weather_info->current_temp);
+    ui_weather_bridge_update_humidity(weather_info->current_humidity);
+    ui_weather_bridge_update_condition(weather_info->current_text);
+    ui_weather_bridge_update_measurement_time(weather_info->last_update);
+    ui_weather_bridge_update_location(weather_info->location);
     
     // Actualizar icono
     ui_weather_bridge_update_weather_icon(weather_info->current_code);
     
     current_location = location;
     
-    ESP_LOGI(TAG, "Weather info updated: %s, %d°C, %s", 
+    ESP_LOGI(TAG, "Weather info updated: %s, %d°C, %d%%, %s", 
              weather_info->location, 
-             weather_info->current_temp, 
+             weather_info->current_temp,
+             weather_info->current_humidity,
              weather_info->current_text);
 }
 

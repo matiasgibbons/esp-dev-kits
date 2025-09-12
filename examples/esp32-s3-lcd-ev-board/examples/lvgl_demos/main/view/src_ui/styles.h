@@ -7,19 +7,39 @@
 extern "C" {
 #endif
 
-// Style: Estado_Sesion_Iniciado
-lv_style_t *get_style_estado_sesion_iniciado_MAIN_DEFAULT();
-void add_style_estado_sesion_iniciado(lv_obj_t *obj);
-void remove_style_estado_sesion_iniciado(lv_obj_t *obj);
+// Style: Boton Defecto
+lv_style_t *get_style_boton_defecto_MAIN_DEFAULT();
+void add_style_boton_defecto(lv_obj_t *obj);
+void remove_style_boton_defecto(lv_obj_t *obj);
 
-// Style: Estado_Sesion_Detenido
-lv_style_t *get_style_estado_sesion_detenido_MAIN_DEFAULT();
-void add_style_estado_sesion_detenido(lv_obj_t *obj);
-void remove_style_estado_sesion_detenido(lv_obj_t *obj);
+// Style: Boton Rojo
+lv_style_t *get_style_boton_rojo_MAIN_DEFAULT();
+void add_style_boton_rojo(lv_obj_t *obj);
+void remove_style_boton_rojo(lv_obj_t *obj);
+
+// Style: Boton Verde
+lv_style_t *get_style_boton_verde_MAIN_DEFAULT();
+void add_style_boton_verde(lv_obj_t *obj);
+void remove_style_boton_verde(lv_obj_t *obj);
 
 // Style: KB-Code
 void add_style_kb_code(lv_obj_t *obj);
 void remove_style_kb_code(lv_obj_t *obj);
+
+// Style: Label <h1>
+lv_style_t *get_style_label__h1__MAIN_DEFAULT();
+void add_style_label__h1_(lv_obj_t *obj);
+void remove_style_label__h1_(lv_obj_t *obj);
+
+// Style: Label <h2>
+lv_style_t *get_style_label__h2__MAIN_DEFAULT();
+void add_style_label__h2_(lv_obj_t *obj);
+void remove_style_label__h2_(lv_obj_t *obj);
+
+// Style: f24
+lv_style_t *get_style_f24_MAIN_DEFAULT();
+void add_style_f24(lv_obj_t *obj);
+void remove_style_f24(lv_obj_t *obj);
 
 
 

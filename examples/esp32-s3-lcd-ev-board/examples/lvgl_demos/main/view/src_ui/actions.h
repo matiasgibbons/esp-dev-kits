@@ -9,6 +9,7 @@ extern "C" {
 
 extern void action_wifi_update_list(lv_event_t * e);
 extern void action_wifi_update_connect(lv_event_t * e);
+extern void action_wh_find_geocoding(lv_event_t * e);
 
 
 #ifdef __cplusplus

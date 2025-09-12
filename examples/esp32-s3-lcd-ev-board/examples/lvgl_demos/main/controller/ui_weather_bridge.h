@@ -37,6 +37,30 @@ void ui_weather_bridge_update_weather_icon(weather_type_code_t weather_code);
 void ui_weather_bridge_update_temperature(int32_t temperature);
 
 /**
+ * @brief Actualizar humedad mostrada en la UI
+ * @param humidity Humedad relativa en porcentaje
+ */
+void ui_weather_bridge_update_humidity(int32_t humidity);
+
+/**
+ * @brief Actualizar condición ambiental mostrada en la UI
+ * @param condition Descripción textual del clima
+ */
+void ui_weather_bridge_update_condition(const char* condition);
+
+/**
+ * @brief Actualizar hora de medición mostrada en la UI
+ * @param last_update Timestamp de la última actualización
+ */
+void ui_weather_bridge_update_measurement_time(const char* last_update);
+
+/**
+ * @brief Actualizar ubicación mostrada en la UI
+ * @param location Nombre de la ubicación
+ */
+void ui_weather_bridge_update_location(const char* location);
+
+/**
  * @brief Solicitar actualización del clima para ubicación personalizada
  * @param country_code Código del país (ej: "ES", "AR")
  * @param postal_code Código postal

@@ -15,6 +15,10 @@
 #include "app_wifi.h"
 #include "app_weather.h"
 
+// Nuevos sistemas de persistencia
+#include "app_settings.h"
+#include "app_spiffs.h"
+
 #include "ui_weather_bridge.h"
 #include "ui_wifi_bridge.h"
 #include "task_manager.h"
@@ -22,19 +26,43 @@
 static char *TAG = "app_main";
 
 /* Print log about SRAM and PSRAM memory */
-#define LOG_MEM_INFO    (0)
+#define LOG_MEM_INFO    (1)
 
 void app_main(void)
 {
-    // Inicializar configuraciones y WiFi
-    ESP_LOGI(TAG, "Initializing settings...");
+    ESP_LOGI(TAG, "=== Texel Equipment - Sistema Iniciando ===");
+    
+    // 1. Inicializar sistemas de persistencia
+    ESP_LOGI(TAG, "Initializing NVS settings system...");
+    ESP_ERROR_CHECK(app_settings_init());
+    
+    ESP_LOGI(TAG, "Initializing SPIFFS file system...");
+    ESP_ERROR_CHECK(app_spiffs_init());
+    
+    // 2. Cargar configuraciones del usuario
+    app_settings_t user_settings;
+    ESP_ERROR_CHECK(app_settings_load(&user_settings));
+    ESP_LOGI(TAG, "User settings loaded: WiFi=%s, Location=%s", 
+             user_settings.wifi_ssid, user_settings.weather_city);
+    
+    // 3. Inicializar configuraciones heredadas y módulos principales
+    ESP_LOGI(TAG, "Initializing legacy settings...");
     ESP_ERROR_CHECK(settings_init());
     
     ESP_LOGI(TAG, "Initializing weather module...");
     ESP_ERROR_CHECK(app_weather_init());
     
+    // 4. Configurar WiFi con credenciales guardadas (si existen)
     ESP_LOGI(TAG, "Starting WiFi network...");
     app_network_start();
+    
+    // TODO: Aplicar configuraciones cargadas (WiFi, ubicación, etc.)
+    if (strlen(user_settings.wifi_ssid) > 0) {
+        ESP_LOGI(TAG, "Applying saved WiFi configuration: %s", user_settings.wifi_ssid);
+        // Aquí se podría auto-conectar al WiFi guardado
+    }
+    
+    // 5. Inicializar hardware y display
     
     bsp_i2c_init();
     lv_disp_t *disp = bsp_display_start();
@@ -71,8 +99,26 @@ void app_main(void)
     ESP_LOGI(TAG, "Starting task manager...");
     ESP_ERROR_CHECK(task_manager_init());
     
+    // 6. Programar limpieza periódica de logs antiguos
+    ESP_LOGI(TAG, "Scheduling periodic maintenance tasks...");
+    // La limpieza se ejecutará cada 24 horas mediante el task manager
+    
     /* Main task becomes idle - all work is now done by dedicated tasks */
-    ESP_LOGI(TAG, "System initialized successfully. Main task going idle.");
+    ESP_LOGI(TAG, "=== Sistema inicializado exitosamente ===");
+    ESP_LOGI(TAG, "SPIFFS: Logs de actividad, configuraciones y respaldos disponibles");
+    ESP_LOGI(TAG, "NVS: Configuraciones persistentes cargadas");
+    ESP_LOGI(TAG, "Sistema listo para uso. Main task en modo monitor.");
+    
+    // 7. Registro de inicio en logs de actividad
+    activity_log_entry_t startup_log = {
+        .timestamp = time(NULL),
+        .session_type = "Sistema",
+        .emission_mode = "Inicio",
+        .duration_minutes = 0,
+        .power_level = 0,
+        .notes = "Sistema iniciado correctamente"
+    };
+    app_spiffs_log_activity(&startup_log);
     
     while (1) {
         // El main task ahora solo hace monitoreo básico

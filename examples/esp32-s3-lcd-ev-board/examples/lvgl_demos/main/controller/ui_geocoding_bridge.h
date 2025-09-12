@@ -17,12 +17,9 @@ extern "C" {
 void ui_geocoding_bridge_init(void);
 
 // Geocoding workflow functions
-void ui_geocoding_bridge_on_country_change(uint16_t selected_index);
-void ui_geocoding_bridge_on_city_change(const char* city_text);
 void ui_geocoding_bridge_search_location(const char* country_code, const char* city);
 void ui_geocoding_bridge_show_results(void);
 void ui_geocoding_bridge_select_result(int result_index);
-void ui_geocoding_bridge_exit(void);
 
 // Helper display functions
 void ui_geocoding_bridge_clear_results(void);
@@ -35,11 +32,7 @@ const char *get_codigo_pais_by_index(int index);
 const char *get_nombre_pais_by_index(int index);
 
 // EEZ Studio action implementations
-void action_pais_onchange(lv_event_t * e);
-void action_ciudad_onchange(lv_event_t * e);
-void action_resultado_geocoding_onchange(lv_event_t * e);
-void action_buscar_location(lv_event_t * e);
-void action_volver_geocoding(lv_event_t * e);
+void action_wh_find_geocoding(lv_event_t * e);
 
 #ifdef __cplusplus
 }

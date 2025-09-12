@@ -1,8 +1,10 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[Test1.eez-project]:/userPages/3",
-    "selectedGlobalVariableObject": "[Test1.eez-project]:/variables/globalVariables/3",
-    "selectedBitmapObject": "[Test1.eez-project]:/bitmaps/0",
+    "selectedUserPageObject": "[Test1.eez-project]:/userPages/2",
+    "selectedActionObject": "[Test1.eez-project]:/actions/2",
+    "selectedGlobalVariableObject": "[Test1.eez-project]:/variables/globalVariables/1",
+    "selectedStyleObject": "[Test1.eez-project]:/lvglStyles/styles/0",
+    "selectedThemeObject": "[Test1.eez-project]:/themes/0",
     "subnavigationSelectedItems": {
       "variables-tab/sub-navigation/selected-item": "Global"
     }
@@ -25,7 +27,7 @@
           },
           {
             "type": "border",
-            "selected": 2,
+            "selected": 0,
             "size": 240,
             "location": "right",
             "children": [
@@ -81,7 +83,6 @@
           },
           {
             "type": "border",
-            "selected": 0,
             "size": 219.5,
             "location": "bottom",
             "children": [
@@ -155,19 +156,19 @@
                     },
                     {
                       "type": "tab",
-                      "id": "WIDGETS",
-                      "name": "User Widgets",
-                      "component": "widgets",
-                      "enableClose": false,
-                      "icon": "svg:user_widgets"
-                    },
-                    {
-                      "type": "tab",
                       "id": "ACTIONS",
                       "name": "User Actions",
                       "component": "actions",
                       "enableClose": false,
                       "icon": "material:code"
+                    },
+                    {
+                      "type": "tab",
+                      "id": "WIDGETS",
+                      "name": "User Widgets",
+                      "component": "widgets",
+                      "enableClose": false,
+                      "icon": "svg:user_widgets"
                     }
                   ]
                 },
@@ -209,13 +210,23 @@
               "type": "tabset",
               "id": "EDITORS",
               "weight": 63.20043103448276,
-              "selected": 1,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
                 {
                   "type": "tab",
-                  "id": "#62670c10-6c6c-42eb-bebc-1dafc035ae9c",
+                  "id": "#bf2c6212-8d1c-4d68-8c6b-6d010b525728",
+                  "name": "Trabajando",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[Test1.eez-project]:/userPages/2",
+                    "permanent": false
+                  },
+                  "icon": "svg:page"
+                },
+                {
+                  "type": "tab",
+                  "id": "#15bbe626-7f3d-4acf-a9e0-f360159c97c2",
                   "name": "Settings",
                   "component": "editor",
                   "config": {
@@ -227,12 +238,12 @@
                 },
                 {
                   "type": "tab",
-                  "id": "#69cbd9dd-a942-4bed-b1ff-80279dd6f3e2",
+                  "id": "#fac68bec-599e-4d75-8191-b53faa08c160",
                   "name": "Config",
                   "component": "editor",
                   "config": {
                     "objectPath": "[Test1.eez-project]:/userPages/3",
-                    "permanent": false
+                    "permanent": true
                   },
                   "icon": "svg:page"
                 }
@@ -455,10 +466,21 @@
               "type": "tabset",
               "id": "RUNTIME-EDITORS",
               "weight": 0.7022613065326633,
-              "selected": -1,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
-              "children": [],
+              "children": [
+                {
+                  "type": "tab",
+                  "id": "#08279411-0494-417b-9706-95e2324ebb56",
+                  "name": "Trabajando",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[Test1.eez-project]:/userPages/2",
+                    "permanent": false
+                  },
+                  "icon": "svg:page"
+                }
+              ],
               "active": true
             },
             {
@@ -833,7 +855,8 @@
                       "component": "themes",
                       "enableClose": false
                     }
-                  ]
+                  ],
+                  "active": true
                 },
                 {
                   "type": "tabset",
@@ -1106,7 +1129,7 @@
           "x": -203.2777777777778,
           "y": -146.52777777777777
         },
-        "scale": 1
+        "scale": 0.9
       },
       "timeline": {
         "isEditorActive": false,
@@ -1116,13 +1139,20 @@
       }
     },
     "[Test1.eez-project]:/userPages/1[flow-state]": {
-      "selection": {},
+      "selection": {
+        "0": {
+          "4": {
+            "0": {},
+            "$selected": true
+          }
+        }
+      },
       "transform": {
         "translate": {
-          "x": -240,
-          "y": -240
+          "x": -241,
+          "y": -140
         },
-        "scale": 1
+        "scale": 0.9
       },
       "timeline": {
         "isEditorActive": false,
@@ -1132,13 +1162,19 @@
       }
     },
     "[Test1.eez-project]:/userPages/2[flow-state]": {
-      "selection": {},
+      "selection": {
+        "0": {
+          "2": {},
+          "9": {}
+        },
+        "9": {}
+      },
       "transform": {
         "translate": {
-          "x": -447.59485903814266,
-          "y": -305.12
+          "x": -222.72544236788588,
+          "y": -298.7888254883585
         },
-        "scale": 0.8
+        "scale": 0.5
       },
       "timeline": {
         "isEditorActive": false,
@@ -1152,15 +1188,14 @@
         "0": {
           "0": {},
           "1": {
-            "2": {}
+            "$selected": true
           }
-        },
-        "2": {}
+        }
       },
       "transform": {
         "translate": {
-          "x": 16.268298658224026,
-          "y": -150.96989531670147
+          "x": -266.125,
+          "y": -244
         },
         "scale": 0.5
       },
@@ -1172,13 +1207,99 @@
       }
     },
     "[Test1.eez-project]:/userPages/4[flow-state]": {
+      "selection": {
+        "0": {
+          "0": {},
+          "2": {},
+          "7": {},
+          "8": {
+            "0": {}
+          }
+        }
+      },
+      "transform": {
+        "translate": {
+          "x": -355.3050505050507,
+          "y": -181.53585858585848
+        },
+        "scale": 0.8
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[Test1.eez-project]:/actions/0[flow-state]": {
       "selection": {},
       "transform": {
         "translate": {
-          "x": -240,
-          "y": -140
+          "x": 0,
+          "y": 0
         },
-        "scale": 0.5
+        "scale": 1
+      }
+    },
+    "[Test1.eez-project]:/actions/1[flow-state]": {
+      "selection": {},
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": 1
+      }
+    },
+    "[Test1.eez-project]:/lvglStyles/styles[tree-state]": {
+      "0": {
+        "$selected": true
+      },
+      "1": {},
+      "2": {},
+      "3": {},
+      "4": {}
+    },
+    "[Test1.eez-project]:/userPages/5[flow-state]": {
+      "selection": {
+        "0": {
+          "4": {}
+        }
+      },
+      "transform": {
+        "translate": {
+          "x": -240,
+          "y": -240
+        },
+        "scale": 0.8
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[Test1.eez-project]:/actions/2[flow-state]": {
+      "selection": {},
+      "transform": {
+        "translate": {
+          "x": -99.02334011759383,
+          "y": -287.22975086687774
+        },
+        "scale": 0.005
+      }
+    },
+    "[Test1.eez-project]:/userPages/6[flow-state]": {
+      "selection": {
+        "0": {}
+      },
+      "transform": {
+        "translate": {
+          "x": -240,
+          "y": -240
+        },
+        "scale": 0.9
       },
       "timeline": {
         "isEditorActive": false,
@@ -1195,19 +1316,19 @@
   "replaceEnabled": false,
   "replaceText": "",
   "pageEditorFrontFace": false,
-  "pageRuntimeFrontFace": true,
+  "pageRuntimeFrontFace": false,
   "breakpoints": {},
   "watchExpressions": [],
-  "showComponentDescriptions": false,
+  "showComponentDescriptions": true,
   "logsPanelFilter": "all",
   "selectedStylePropertyName": "",
   "lvglPart": "MAIN",
-  "lvglState": "DEFAULT",
+  "lvglState": "DISABLED",
   "lvglExpandedPropertiesGroup": [
     "TEXT",
     "MISCELLANEOUS"
   ],
-  "showInactiveFlowsInDebugger": true,
+  "showInactiveFlowsInDebugger": false,
   "globalFlowZoom": true,
   "flowZoom": 0.5,
   "implementationLanguage": "C"

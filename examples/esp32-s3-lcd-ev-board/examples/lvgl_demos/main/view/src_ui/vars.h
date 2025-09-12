@@ -16,8 +16,8 @@ extern "C" {
 
 enum FlowGlobalVariables {
     FLOW_GLOBAL_VARIABLE_POTENCIA = 0,
-    FLOW_GLOBAL_VARIABLE_TIEMPOSESION = 1,
-    FLOW_GLOBAL_VARIABLE_ESTADOSESION = 2,
+    FLOW_GLOBAL_VARIABLE_TIEMPO_SESION = 1,
+    FLOW_GLOBAL_VARIABLE_ESTADO_SESION = 2,
     FLOW_GLOBAL_VARIABLE_WEATHER_CODE = 3,
     FLOW_GLOBAL_VARIABLE_WH_GEOCODING_CITY = 4
 };
@@ -26,8 +26,6 @@ enum FlowGlobalVariables {
 
 extern const char *get_var_listado_paises();
 extern void set_var_listado_paises(const char *value);
-extern const char *get_var_wh_geocoding_results();
-extern void set_var_wh_geocoding_results(const char *value);
 
 
 #ifdef __cplusplus

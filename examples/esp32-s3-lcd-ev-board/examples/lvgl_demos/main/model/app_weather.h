@@ -112,6 +112,25 @@ esp_err_t app_weather_request_geocoded(const char* country_code, const char* pos
  * @param result Output geocoding result
  * @return esp_err_t Geocoding status
  */
+/**
+ * @brief Search for cities using geocoding API
+ * @param country_code ISO country code (e.g., "AR", "US")
+ * @param city_name City name to search for
+ * @param results Array to store found locations
+ * @param max_results Maximum number of results to return
+ * @param num_results Pointer to store actual number of results found
+ * @return ESP_OK on success, error code on failure
+ */
+esp_err_t app_weather_geocoding_search_cities(const char* country_code, const char* city_name, 
+                                             geocoding_location_t* results, int max_results, int* num_results);
+
+/**
+ * @brief Search coordinates for postal code using geocoding API
+ * @param country_code ISO country code (e.g., "AR", "US")
+ * @param postal_code Postal code to search for
+ * @param result Single result structure
+ * @return ESP_OK on success, error code on failure
+ */
 esp_err_t app_weather_geocoding_search(const char* country_code, const char* postal_code, geocoding_location_t* result);
 
 /**
@@ -126,6 +145,13 @@ weather_info_t *app_weather_get_info(weather_location_t location);
  * @return geocoding_location_t* Pointer to custom location or NULL if not set
  */
 geocoding_location_t *app_weather_get_custom_location(void);
+
+/**
+ * @brief Set custom location from geocoding result
+ * @param location Geocoding location to set as custom location
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t app_weather_set_custom_location(const geocoding_location_t* location);
 
 /**
  * @brief Parse Open-Meteo JSON response
