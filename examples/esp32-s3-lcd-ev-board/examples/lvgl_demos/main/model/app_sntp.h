@@ -11,7 +11,11 @@
 extern "C" {
 #endif
 
+// Inicialización bloqueante tradicional
 void app_sntp_init(void);
+
+// Inicialización no-bloqueante (solo inicia proceso, no espera)
+void app_sntp_init_async(void);
 
 #ifdef __cplusplus
 }

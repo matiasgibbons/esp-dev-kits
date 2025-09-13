@@ -28,17 +28,19 @@ extern "C" {
 
 // Intervalos de actualización (en ms)
 #define UI_UPDATE_INTERVAL     10
-#define WEATHER_UPDATE_INTERVAL 5000
+#define WEATHER_UPDATE_INTERVAL 300000 // 5 minutos
 #define WIFI_UPDATE_INTERVAL   1000
 #define SYSTEM_UPDATE_INTERVAL 10000
 
 /**
  * @brief Inicializar el gestor de tareas y crear todas las tareas del sistema
+ * Implementa patrón "Single UI Thread" - solo UI_Task accede a LVGL
  */
 esp_err_t task_manager_init(void);
 
 /**
  * @brief Obtener el mutex del display para sincronización
+ * @deprecated Ya no se usa mutex - retorna NULL
  */
 SemaphoreHandle_t task_manager_get_display_mutex(void);
 
@@ -58,7 +60,7 @@ void task_manager_resume_background_tasks(void);
 void task_manager_print_task_info(void);
 
 /**
- * @brief Forzar actualización inmediata de weather (útil para botones de UI)
+ * @brief Forzar actualización inmediata de weather (vía cola de comandos)
  */
 void task_manager_force_weather_update(void);
 

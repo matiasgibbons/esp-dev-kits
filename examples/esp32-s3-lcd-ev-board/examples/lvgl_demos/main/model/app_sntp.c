@@ -16,6 +16,7 @@
 #include "esp_sleep.h"
 #include "nvs_flash.h"
 #include "esp_sntp.h"
+#include "event_system.h"
 
 static const char *TAG = "app_sntp";
 
@@ -41,6 +42,8 @@ static void time_sync_notification_cb(struct timeval *tv)
 {
     ESP_LOGI(TAG, "Notification of a time synchronization event, sec=%lu", tv->tv_sec);
     settimeofday(tv, NULL);
+    // Publicar evento de sincronización completa
+    event_system_post_simple(EVENT_SNTP_SYNC_COMPLETE, NULL, 0);
 }
 
 void app_sntp_init(void)
@@ -105,6 +108,34 @@ void app_sntp_init(void)
     }
 }
 
+void app_sntp_init_async(void)
+{
+    ++boot_count;
+    ESP_LOGI(TAG, "Boot count: %d (async init)", boot_count);
+
+    time_t now;
+    struct tm timeinfo;
+    time(&now);
+    localtime_r(&now, &timeinfo);
+    
+    // Configurar timezone para Argentina
+    setenv("TZ", "ART3", 1);
+    tzset();
+    
+    // Si el tiempo ya está configurado, no hacer nada
+    if (timeinfo.tm_year >= (2016 - 1900)) {
+        ESP_LOGI(TAG, "Time already set, posting SNTP_SYNC_COMPLETE immediately");
+        event_system_post_simple(EVENT_SNTP_SYNC_COMPLETE, NULL, 0);
+        return;
+    }
+    
+    // Solo inicializar SNTP, no esperar sincronización
+    ESP_LOGI(TAG, "Time not set, starting async SNTP synchronization");
+    initialize_sntp();
+    
+    // La sincronización ocurrirá en background, el callback publicará EVENT_SNTP_SYNC_COMPLETE
+}
+
 static void obtain_time(void)
 {
     initialize_sntp();
@@ -126,6 +157,7 @@ static void obtain_time(void)
 static void initialize_sntp(void)
 {
     ESP_LOGI(TAG, "Initializing SNTP");
+    event_system_post_simple(EVENT_SNTP_SYNC_START, NULL, 0);
     esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
     esp_sntp_setservername(0, "ntp.aliyun.com");
     esp_sntp_setservername(1, "time.asia.apple.com");

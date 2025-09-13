@@ -5,6 +5,7 @@
 
 #include "ui_geocoding_bridge.h"
 #include "app_weather.h"
+#include "event_system.h"
 #include "esp_log.h"
 #include <string.h>
 
@@ -17,6 +18,8 @@ static const char *TAG = "ui_geocoding_bridge";
 
 // Forward declarations
 static void geocoding_result_item_clicked(lv_event_t *e);
+static void ui_geocoding_bridge_show_searching(void);
+static void ui_geocoding_bridge_process_result_event(const geocoding_search_result_evt_t *res);
 
 // State tracking for the geocoding workflow
 static struct {
@@ -30,81 +33,62 @@ static struct {
     .search_in_progress = false
 };
 
-// Buffer to hold the current listado_paises string
-static char listado_paises_buf[1024];
-static int listado_paises_built = 0;
-
-// Buffer to hold geocoding results
-static char geocoding_results_buf[1024];
-
-// Static table of Latin American countries (Spanish display name + ISO code)
-static const struct {
-    const char *name;
-    const char *code;
-} paises[] = {
-    { "Argentina", "AR" },
-    { "Bolivia", "BO" },
-    { "Brasil", "BR" },
-    { "Chile", "CL" },
-    { "Colombia", "CO" },
-    { "Costa Rica", "CR" },
-    { "Cuba", "CU" },
-    { "Ecuador", "EC" },
-    { "El Salvador", "SV" },
-    { "Guatemala", "GT" },
-    { "Honduras", "HN" },
-    { "México", "MX" },
-    { "Nicaragua", "NI" },
-    { "Panamá", "PA" },
-    { "Paraguay", "PY" },
-    { "Perú", "PE" },
-    { "Puerto Rico", "PR" },
-    { "República Dominicana", "DO" },
-    { "Uruguay", "UY" },
-    { "Venezuela", "VE" }
+// ---------------------------------------------------------------------------
+// Lista de países: única fuente de la verdad (nombres + código ISO)
+// ---------------------------------------------------------------------------
+// Se eliminó la duplicación: a partir de este array se construye el string
+// de opciones para el dropdown (nombres separados por '\n').
+// Solo necesitamos los códigos para la búsqueda. Los nombres visibles viven en listado_paises_options.
+static const char * const paises_codes[] = {
+    "AR", "BO", "BR", "CL", "CO",
+    "CR", "CU", "EC", "SV", "GT",
+    "HN", "MX", "NI", "PA", "PY",
+    "PE", "PR", "DO", "UY", "VE"
 };
 
+// String constante con las opciones del dropdown (nombres separados por '\n').
+// No se construye en runtime.
+static const char listado_paises_options[] =
+    "Argentina\n"
+    "Bolivia\n"
+    "Brasil\n"
+    "Chile\n"
+    "Colombia\n"
+    "Costa Rica\n"
+    "Cuba\n"
+    "Ecuador\n"
+    "El Salvador\n"
+    "Guatemala\n"
+    "Honduras\n"
+    "México\n"
+    "Nicaragua\n"
+    "Panamá\n"
+    "Paraguay\n"
+    "Perú\n"
+    "Puerto Rico\n"
+    "República Dominicana\n"
+    "Uruguay\n"
+    "Venezuela"; // sin salto final
+
+// Buffer de resultados geocoding
+static char geocoding_results_buf[1024];
+
 // ============================================================================
-// Country list management
+// Country list access (versión simplificada)
 // ============================================================================
 
-static void build_listado_paises(void)
-{
-    char *p = listado_paises_buf;
-    size_t rem = sizeof(listado_paises_buf);
-    int written = 0;
-    size_t n = sizeof(paises) / sizeof(paises[0]);
-
-    for (size_t i = 0; i < n; ++i) {
-        const char *name = paises[i].name;
-        if (rem == 0) break;
-        written = snprintf(p, rem, "%s", name);
-        if (written < 0) break;
-        size_t w = (size_t)written;
-        if (w >= rem) { p[rem - 1] = '\0'; rem = 0; break; }
-        p += w; rem -= w;
-        if (i + 1 < n && rem > 1) { *p++ = '\n'; *p = '\0'; rem -= 1; }
-    }
-
-    listado_paises_built = 1;
+const char *get_var_listado_paises(void) {
+    return listado_paises_options;
 }
 
-const char *get_var_listado_paises()
-{
-    if (!listado_paises_built) build_listado_paises();
-    return (const char *)listado_paises_buf;
-}
-
-void set_var_listado_paises(const char *value)
-{
-    if (value == NULL) {
-        listado_paises_buf[0] = '\0';
-        listado_paises_built = 1;
-        return;
+// Para mantener compatibilidad con el código generado por EEZ Studio.
+// En este diseño estático no se requiere sobrescribir la lista.
+// Si alguien intenta hacerlo, simplemente se ignora y se loggea (nivel debug).
+void set_var_listado_paises(const char *value) {
+    // Ignorado por diseño (lista fija). Se deja para compatibilidad.
+    if (value) {
+        ESP_LOGD(TAG, "set_var_listado_paises() ignorado: lista fija");
     }
-    strncpy(listado_paises_buf, value, sizeof(listado_paises_buf) - 1);
-    listado_paises_buf[sizeof(listado_paises_buf) - 1] = '\0';
-    listado_paises_built = 1;
 }
 
 const char *get_var_wh_geocoding_results()
@@ -144,17 +128,9 @@ static void add_result_to_list(int index, const char *city_name, const char *cou
         return;
     }
     
-    // Encontrar el nombre completo del país basado en el código
-    const char *country_name = "País desconocido";
-    for (int i = 0; i < sizeof(paises) / sizeof(paises[0]); i++) {
-        if (strcmp(paises[i].code, country_code) == 0) {
-            country_name = paises[i].name;
-            break;
-        }
-    }
-    
     char item_text[128];
-    snprintf(item_text, sizeof(item_text), "%s, %s", city_name, country_name);
+    // Mostramos solo código de país (nombres no necesarios según nuevo criterio)
+    snprintf(item_text, sizeof(item_text), "%s, %s", city_name, country_code ? country_code : "??");
     
     // Agregar item a la lista sin ícono
     lv_obj_t *btn = lv_list_add_button(objects.resultado_geocoding, NULL, item_text);
@@ -181,6 +157,13 @@ static void show_message_in_list(const char *message)
     lv_obj_clear_flag(btn, LV_OBJ_FLAG_CLICKABLE); // Hacer que no sea clickeable
 }
 
+// Mostrar estado de búsqueda en progreso
+static void ui_geocoding_bridge_show_searching(void)
+{
+    geocoding_state.num_results = 0; // reset parcial
+    show_message_in_list("Buscando...\n\nPor favor espere.");
+}
+
 // Event handler para cuando se hace clic en un resultado
 static void geocoding_result_item_clicked(lv_event_t *e)
 {
@@ -195,30 +178,12 @@ static void geocoding_result_item_clicked(lv_event_t *e)
 // Helper functions
 // ============================================================================
 
-const char *get_codigo_pais_by_name(const char *name)
-{
-    if (!name) return NULL;
-    size_t n = sizeof(paises) / sizeof(paises[0]);
-    for (size_t i = 0; i < n; ++i) {
-        if (strcmp(paises[i].name, name) == 0) return paises[i].code;
-    }
-    return NULL;
-}
-
 const char *get_codigo_pais_by_index(int index)
 {
     if (index < 0) return NULL;
-    size_t n = sizeof(paises) / sizeof(paises[0]);
+    size_t n = sizeof(paises_codes)/sizeof(paises_codes[0]);
     if ((size_t)index >= n) return NULL;
-    return paises[index].code;
-}
-
-const char *get_nombre_pais_by_index(int index)
-{
-    if (index < 0) return NULL;
-    size_t n = sizeof(paises) / sizeof(paises[0]);
-    if ((size_t)index >= n) return NULL;
-    return paises[index].name;
+    return paises_codes[index];
 }
 
 // ============================================================================
@@ -237,8 +202,6 @@ void ui_geocoding_bridge_init(void)
     geocoding_state.selected_result_index = -1;
     geocoding_state.search_in_progress = false;
     
-    // Set initial message
-    ui_geocoding_bridge_clear_results();
 }
 
 // ============================================================================
@@ -248,31 +211,30 @@ void ui_geocoding_bridge_init(void)
 // Step 3: Search execution
 void ui_geocoding_bridge_search_location(const char* country_code, const char* city)
 {
-    ESP_LOGI(TAG, "Step 3: Searching for '%s' in country '%s'", city ? city : "NULL", country_code ? country_code : "NULL");
-    
+    ESP_LOGI(TAG, "Geocoding: request '%s' in '%s'", city ? city : "NULL", country_code ? country_code : "NULL");
+
+    if (geocoding_state.search_in_progress) {
+        ESP_LOGW(TAG, "Search already in progress - ignoring new request");
+        return;
+    }
+
     if (!country_code || !city || strlen(city) == 0) {
-        ESP_LOGW(TAG, "Invalid search parameters");
         ui_geocoding_bridge_show_error("Parámetros de búsqueda inválidos");
         return;
     }
-    
+
     geocoding_state.search_in_progress = true;
+    geocoding_state.num_results = 0;
+    geocoding_state.selected_result_index = -1;
     ui_geocoding_bridge_show_searching();
-    
-    // Call the real geocoding service
-    esp_err_t ret = app_weather_geocoding_search_cities(country_code, city, 
-                                                      geocoding_state.search_results, 
-                                                      5, // max_results
-                                                      &geocoding_state.num_results);
-    
-    geocoding_state.search_in_progress = false;
-    
-    if (ret == ESP_OK) {
-        ESP_LOGI(TAG, "Geocoding search completed with %d results", geocoding_state.num_results);
-        ui_geocoding_bridge_show_results();
-    } else {
-        ESP_LOGW(TAG, "Geocoding search failed: %s", esp_err_to_name(ret));
-        ui_geocoding_bridge_show_error("Error en la búsqueda. Verifique la conexión a internet.");
+
+    geocoding_search_request_t req = {0};
+    strncpy(req.country_code, country_code, 2); req.country_code[2] = '\0';
+    strncpy(req.city, city, sizeof(req.city)-1);
+
+    if (event_system_post_simple(EVENT_GEOCODING_SEARCH_REQUESTED, &req, sizeof(req)) != ESP_OK) {
+        geocoding_state.search_in_progress = false;
+        ui_geocoding_bridge_show_error("No se pudo enviar la solicitud");
     }
 }
 
@@ -299,6 +261,42 @@ void ui_geocoding_bridge_show_results(void)
     }
 }
 
+// Procesar evento COMPLETE/FAILED desde UI task
+void ui_geocoding_bridge_process_updates(system_event_t *evt)
+{
+    if (!evt) return;
+    switch (evt->type) {
+        case EVENT_GEOCODING_SEARCH_START:
+            ESP_LOGI(TAG, "Geocoding search started");
+            break;
+        case EVENT_GEOCODING_SEARCH_COMPLETE:
+            if (evt->data && evt->data_size == sizeof(geocoding_search_result_evt_t)) {
+                const geocoding_search_result_evt_t *res = (const geocoding_search_result_evt_t*)evt->data;
+                ui_geocoding_bridge_process_result_event(res);
+            } else {
+                ESP_LOGW(TAG, "Unexpected payload size for COMPLETE");
+            }
+            break;
+        case EVENT_GEOCODING_SEARCH_FAILED:
+            geocoding_state.search_in_progress = false;
+            ui_geocoding_bridge_show_error("Búsqueda fallida");
+            break;
+        default:
+            break;
+    }
+}
+
+static void ui_geocoding_bridge_process_result_event(const geocoding_search_result_evt_t *res)
+{
+    geocoding_state.search_in_progress = false;
+    geocoding_state.num_results = res->num_results;
+    if (geocoding_state.num_results > 5) geocoding_state.num_results = 5;
+    for (int i = 0; i < geocoding_state.num_results; ++i) {
+        geocoding_state.search_results[i] = res->results[i];
+    }
+    ui_geocoding_bridge_show_results();
+}
+
 // Step 5: Result selection and persistence
 void ui_geocoding_bridge_select_result(int result_index)
 {
@@ -312,24 +310,24 @@ void ui_geocoding_bridge_select_result(int result_index)
     
     geocoding_state.selected_result_index = result_index;
     
-    // Configurar la ubicación customizada con el resultado seleccionado
+    // Configurar la ubicación de usuario con el resultado seleccionado
     esp_err_t ret = app_weather_set_custom_location(&geocoding_state.search_results[result_index]);
     if (ret != ESP_OK) {
-        ESP_LOGW(TAG, "Failed to set custom location: %s", esp_err_to_name(ret));
+        ESP_LOGW(TAG, "Failed to set user location: %s", esp_err_to_name(ret));
         ui_geocoding_bridge_show_error("Error al configurar la ubicación");
         return;
     }
     
     // Solicitar clima para la ubicación customizada
-    ESP_LOGI(TAG, "Requesting weather for custom location: %s", 
+    ESP_LOGI(TAG, "Requesting weather for user location: %s", 
              geocoding_state.search_results[result_index].city_name);
              
-    ret = app_weather_request(LOCATION_NUM_CUSTOM);
+    ret = app_weather_request(LOCATION_NUM_USER);
     
     if (ret == ESP_OK) {
-        ESP_LOGI(TAG, "Weather request sent for custom location");
+    ESP_LOGI(TAG, "Weather request sent for user location");
     } else {
-        ESP_LOGW(TAG, "Failed to request weather for custom location: %s", esp_err_to_name(ret));
+    ESP_LOGW(TAG, "Failed to request weather for user location: %s", esp_err_to_name(ret));
     }
     
     ESP_LOGI(TAG, "Weather request sent for location: %s (%.4f, %.4f)", 
@@ -339,15 +337,6 @@ void ui_geocoding_bridge_select_result(int result_index)
 }
 
 // Helper functions
-void ui_geocoding_bridge_clear_results(void)
-{
-    show_message_in_list("Flujo de búsqueda:\n\n1. Seleccione un país\n2. Ingrese una ciudad\n3. Presione el botón Buscar\n\nComience seleccionando un país...");
-}
-
-void ui_geocoding_bridge_show_searching(void)
-{
-    show_message_in_list("Buscando ubicaciones...\n\nPor favor espere...");
-}
 
 void ui_geocoding_bridge_show_error(const char* error_message)
 {

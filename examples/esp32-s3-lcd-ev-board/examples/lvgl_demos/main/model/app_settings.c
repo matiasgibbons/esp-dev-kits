@@ -7,9 +7,11 @@
 #include "nvs.h"
 #include "esp_log.h"
 #include <string.h>
+#include "event_system.h"
 
 static const char *TAG = "app_settings";
 static nvs_handle_t settings_nvs_handle;
+static app_settings_t g_app_settings; // singleton de configuración consolidada
 
 esp_err_t app_settings_init(void)
 {
@@ -26,27 +28,48 @@ esp_err_t app_settings_init(void)
         return ret;
     }
 
-    ESP_LOGI(TAG, "Settings system initialized");
+    // Cargar defaults iniciales al singleton
+    app_settings_get_defaults(&g_app_settings);
+    ESP_LOGI(TAG, "Settings system initialized (singleton ready)");
     return ESP_OK;
 }
 
 void app_settings_get_defaults(app_settings_t *settings)
 {
     memset(settings, 0, sizeof(app_settings_t));
-    
-    // WiFi defaults (empty - user must configure)
+
+    // Perfiles WiFi (usuario podrá sobreescribir los primeros; TEXEL queda última prioridad)
+    // Índice 0 y 1 vacíos para redes de usuario / cliente
+    settings->wifi_network_count = 3; // siempre reservamos 3 slots
+    settings->wifi_current_network = 0;
+    settings->wifi_networks[0].ssid[0] = '\0';
+    settings->wifi_networks[0].password[0] = '\0';
+    settings->wifi_networks[0].priority = 0;
+    settings->wifi_networks[1].ssid[0] = '\0';
+    settings->wifi_networks[1].password[0] = '\0';
+    settings->wifi_networks[1].priority = 1;
+    // Slot servicio técnico TEXEL (baja prioridad / fallback final)
+    strcpy(settings->wifi_networks[2].ssid, "TEXEL24");
+    strcpy(settings->wifi_networks[2].password, "Texel52b");
+    settings->wifi_networks[2].priority = 2; // más baja
+
+    // Credenciales activas iniciales = vacías (forzará UI a pedir red); si ninguna válida se podría usar TEXEL manualmente
     settings->wifi_ssid[0] = '\0';
     settings->wifi_password[0] = '\0';
-    
+
     // Weather defaults (Rosario, Argentina)
-    settings->weather_lat = -32.9442;
-    settings->weather_lon = -60.6505;
+    settings->weather_lat = -32.9442f;
+    settings->weather_lon = -60.6505f;
     strcpy(settings->weather_city, "Rosario, Argentina");
-    
+
     // Display defaults
     settings->display_brightness = 80;  // 80%
     strcpy(settings->language, "es");   // Spanish
-    
+
+    // UI flags heredados
+    settings->demo_gui = true;
+    settings->need_hint = false;
+
     // System defaults
     settings->last_known_good_config = true;
 }
@@ -108,6 +131,17 @@ esp_err_t app_settings_load(app_settings_t *settings)
     return ESP_OK;
 }
 
+app_settings_t* app_settings_get(void)
+{
+    return &g_app_settings;
+}
+
+// Helper para exponer puntero constante
+const app_settings_t* app_settings_get_const(void)
+{
+    return &g_app_settings;
+}
+
 esp_err_t app_settings_save(const app_settings_t *settings)
 {
     esp_err_t ret = ESP_OK;
@@ -141,12 +175,23 @@ esp_err_t app_settings_save(const app_settings_t *settings)
 
 esp_err_t app_settings_save_wifi(const char* ssid, const char* password)
 {
+    app_settings_t *settings = app_settings_get();
     esp_err_t ret = ESP_OK;
-    
+
     ret |= nvs_set_str(settings_nvs_handle, KEY_WIFI_SSID, ssid);
     ret |= nvs_set_str(settings_nvs_handle, KEY_WIFI_PASSWORD, password);
     ret |= nvs_commit(settings_nvs_handle);
 
+    if (ret == ESP_OK) {
+        strncpy(settings->wifi_ssid, ssid, sizeof(settings->wifi_ssid)-1);
+        strncpy(settings->wifi_password, password, sizeof(settings->wifi_password)-1);
+        // Si primer perfil vacío lo llenamos
+        if (settings->wifi_networks[0].ssid[0] == '\0') {
+            strncpy(settings->wifi_networks[0].ssid, ssid, sizeof(settings->wifi_networks[0].ssid)-1);
+            strncpy(settings->wifi_networks[0].password, password, sizeof(settings->wifi_networks[0].password)-1);
+        }
+        event_system_post_simple(EVENT_SETTINGS_CHANGED, NULL, 0);
+    }
     ESP_LOGI(TAG, "WiFi credentials saved: %s", ssid);
     return ret;
 }
@@ -160,6 +205,13 @@ esp_err_t app_settings_save_weather_location(float lat, float lon, const char* c
     ret |= nvs_set_str(settings_nvs_handle, KEY_WEATHER_CITY, city);
     ret |= nvs_commit(settings_nvs_handle);
 
+    if (ret == ESP_OK) {
+        app_settings_t *settings = app_settings_get();
+        settings->weather_lat = lat;
+        settings->weather_lon = lon;
+        strncpy(settings->weather_city, city, sizeof(settings->weather_city)-1);
+        event_system_post_simple(EVENT_SETTINGS_CHANGED, NULL, 0);
+    }
     ESP_LOGI(TAG, "Weather location saved: %s (%.4f, %.4f)", city, lat, lon);
     return ret;
 }
@@ -169,6 +221,49 @@ esp_err_t app_settings_save_brightness(uint8_t brightness)
     esp_err_t ret = nvs_set_u8(settings_nvs_handle, KEY_DISPLAY_BRIGHTNESS, brightness);
     ret |= nvs_commit(settings_nvs_handle);
 
+    if (ret == ESP_OK) {
+        app_settings_get()->display_brightness = brightness;
+        event_system_post_simple(EVENT_SETTINGS_CHANGED, NULL, 0);
+    }
     ESP_LOGI(TAG, "Display brightness saved: %d%%", brightness);
     return ret;
+}
+
+// -----------------------------------------------------------------------------
+// Nuevas utilidades de perfiles WiFi unificados (migración desde settings.c)
+// -----------------------------------------------------------------------------
+
+esp_err_t app_settings_set_active_network(app_settings_t *settings, uint8_t index)
+{
+    if (!settings || index >= settings->wifi_network_count) return ESP_ERR_INVALID_ARG;
+    if (settings->wifi_networks[index].ssid[0] == '\0') return ESP_ERR_INVALID_STATE; // slot vacío
+    settings->wifi_current_network = index;
+    strncpy(settings->wifi_ssid, settings->wifi_networks[index].ssid, sizeof(settings->wifi_ssid)-1);
+    strncpy(settings->wifi_password, settings->wifi_networks[index].password, sizeof(settings->wifi_password)-1);
+    ESP_LOGI(TAG, "Active WiFi network set to index %u (%s)", index, settings->wifi_ssid);
+    event_system_post_simple(EVENT_SETTINGS_CHANGED, NULL, 0);
+    return ESP_OK;
+}
+
+esp_err_t app_settings_rotate_next_network(app_settings_t *settings)
+{
+    if (!settings) return ESP_ERR_INVALID_ARG;
+    uint8_t start = settings->wifi_current_network;
+    for (uint8_t i = 1; i <= settings->wifi_network_count; ++i) {
+        uint8_t candidate = (start + i) % settings->wifi_network_count;
+        if (settings->wifi_networks[candidate].ssid[0] != '\0') {
+            return app_settings_set_active_network(settings, candidate);
+        }
+    }
+    return ESP_ERR_NOT_FOUND; // no hay otra
+}
+
+const char* app_settings_get_active_ssid(const app_settings_t *settings)
+{
+    return settings ? settings->wifi_ssid : NULL;
+}
+
+const char* app_settings_get_active_password(const app_settings_t *settings)
+{
+    return settings ? settings->wifi_password : NULL;
 }

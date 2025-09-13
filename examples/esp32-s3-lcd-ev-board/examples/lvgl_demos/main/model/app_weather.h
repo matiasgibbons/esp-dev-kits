@@ -24,24 +24,33 @@
 extern "C" {
 #endif
 
-// Location definitions - Argentine cities
+// Definición de ubicaciones: solo Rosario (fallback) y una ubicación elegida por el usuario vía geocodificación
 typedef enum {
     LOCATION_NUM_ROSARIO = 0,    // Rosario, Santa Fe (por defecto)
-    LOCATION_NUM_BUENOS_AIRES,   // Buenos Aires, CABA
-    LOCATION_NUM_CORDOBA,        // Córdoba, Córdoba
-    LOCATION_NUM_CUSTOM,         // For custom geocoded locations
+    LOCATION_NUM_USER,           // Ubicación elegida por el usuario (geocoding)
     LOCATION_NUM_MAX,
 } weather_location_t;
 
-// Geocoding structure for custom locations
+// Geocoding structure para la ubicación elegida por el usuario
 typedef struct {
     char country_code[4];   // e.g., "AR", "US", "ES"
-    char postal_code[16];   // e.g., "5000", "10001"
-    char city_name[64];     // Found city name
+    char city_name[64];     // Nombre de la ciudad
     float latitude;
     float longitude;
     bool is_valid;
 } geocoding_location_t;
+
+// Payload para request de geocoding (búsqueda ciudades)
+typedef struct {
+    char country_code[3]; // 2 + null
+    char city[48];        // truncado seguro
+} geocoding_search_request_t;
+
+// Payload para evento de resultados de geocoding
+typedef struct {
+    int num_results;
+    geocoding_location_t results[5];
+} geocoding_search_result_evt_t;
 
 // Weather type codes (WMO Weather interpretation codes)
 typedef enum {
@@ -98,40 +107,13 @@ esp_err_t app_weather_init(void);
 esp_err_t app_weather_request(weather_location_t location);
 
 /**
- * @brief Request weather data for custom location using geocoding
+ * @brief Search coordinates for cities using geocoding API
  * @param country_code Country code (e.g., "AR", "US", "ES")
- * @param postal_code Postal code (e.g., "5000", "10001")
- * @return esp_err_t Request status
- */
-esp_err_t app_weather_request_geocoded(const char* country_code, const char* postal_code);
-
-/**
- * @brief Search coordinates for postal code using geocoding API
- * @param country_code Country code (e.g., "AR", "US", "ES")
- * @param postal_code Postal code (e.g., "5000", "10001")
  * @param result Output geocoding result
  * @return esp_err_t Geocoding status
  */
-/**
- * @brief Search for cities using geocoding API
- * @param country_code ISO country code (e.g., "AR", "US")
- * @param city_name City name to search for
- * @param results Array to store found locations
- * @param max_results Maximum number of results to return
- * @param num_results Pointer to store actual number of results found
- * @return ESP_OK on success, error code on failure
- */
 esp_err_t app_weather_geocoding_search_cities(const char* country_code, const char* city_name, 
                                              geocoding_location_t* results, int max_results, int* num_results);
-
-/**
- * @brief Search coordinates for postal code using geocoding API
- * @param country_code ISO country code (e.g., "AR", "US")
- * @param postal_code Postal code to search for
- * @param result Single result structure
- * @return ESP_OK on success, error code on failure
- */
-esp_err_t app_weather_geocoding_search(const char* country_code, const char* postal_code, geocoding_location_t* result);
 
 /**
  * @brief Get weather info for a location
@@ -141,14 +123,14 @@ esp_err_t app_weather_geocoding_search(const char* country_code, const char* pos
 weather_info_t *app_weather_get_info(weather_location_t location);
 
 /**
- * @brief Get current custom geocoded location info
- * @return geocoding_location_t* Pointer to custom location or NULL if not set
+ * @brief Obtener ubicación geocodificada del usuario (si existe)
+ * @return geocoding_location_t* Puntero a la ubicación o NULL si no está configurada
  */
 geocoding_location_t *app_weather_get_custom_location(void);
 
 /**
- * @brief Set custom location from geocoding result
- * @param location Geocoding location to set as custom location
+ * @brief Configurar ubicación del usuario desde resultado de geocoding
+ * @param location Estructura geocodificada válida
  * @return esp_err_t ESP_OK on success
  */
 esp_err_t app_weather_set_custom_location(const geocoding_location_t* location);

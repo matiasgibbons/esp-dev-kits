@@ -7,6 +7,7 @@
 #include "ui_wifi_bridge.h"
 #include "app_wifi.h"
 #include "esp_log.h"
+#include "event_system.h"
 
 // Incluir headers de EEZ Studio para acceder a objects
 #include "screens.h"
@@ -15,34 +16,38 @@
 
 static const char *TAG = "ui_wifi_bridge";
 
-// Flag para indicar que hay actualizaciones pendientes
+// Estado mínimo UI (solo flags UI, no duplicar datos del modelo)
 static bool wifi_list_needs_update = false;
-static bool wifi_scan_in_progress = false;
+static bool wifi_scan_in_progress = false; // indica que se solicitó un scan
 
 // Forward declaration
 static void wifi_selection_event_cb(lv_event_t * e);
 
-void ui_bridge_init(void)
+// Helper interno para decidir si podemos mostrar la lista
+static bool wifi_bridge_has_scan_results(void) {
+    const scan_info_t *info = app_wifi_get_scan_results();
+    return (info && info->ap_count > 0 && info->scan_done != WIFI_SCAN_IDLE);
+}
+
+void ui_wifi_bridge_init(void)
 {
     ESP_LOGI(TAG, "UI Bridge initialized");
     wifi_list_needs_update = false;
     wifi_scan_in_progress = false;
 }
 
-void ui_bridge_start_wifi_scan(void)
+void ui_wifi_bridge_request_scan(void)
 {
-    ESP_LOGI(TAG, "Starting WiFi scan...");
+    ESP_LOGI(TAG, "Solicitando scan WiFi (EVENT_WIFI_SCAN_REQUESTED)");
     wifi_scan_in_progress = true;
-    
-    // Enviar evento de escaneo al módulo WiFi
-    esp_err_t ret = send_network_event(NET_EVENT_SCAN);
+    esp_err_t ret = event_system_post_simple(EVENT_WIFI_SCAN_REQUESTED, NULL, 0);
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to start WiFi scan: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "No se pudo postear EVENT_WIFI_SCAN_REQUESTED: %s", esp_err_to_name(ret));
         wifi_scan_in_progress = false;
     }
 }
 
-void ui_bridge_update_wifi_list(void)
+void ui_wifi_bridge_update_wifi_list(void)
 {
     ESP_LOGI(TAG, "Updating WiFi list in UI...");
     
@@ -60,36 +65,31 @@ void ui_bridge_update_wifi_list(void)
     
     // Limpiar la lista anterior
     lv_obj_clean(objects.wifi_list);
-    
+
+    const scan_info_t *info = app_wifi_get_scan_results();
+    if (!info) {
+        app_wifi_unlock();
+        ESP_LOGW(TAG, "Scan info NULL");
+        wifi_scan_in_progress = false;
+        return;
+    }
+
     // Llenar con las redes encontradas
-    for (int i = 0; i < scan_info_result.ap_count; i++) {
-        wifi_ap_record_t *ap = &scan_info_result.ap_info[i];
-        
-        // Crear texto con SSID y fuerza de señal
+    for (int i = 0; i < info->ap_count; i++) {
+        const wifi_ap_record_t *ap = &info->ap_info[i];
         char wifi_text[64];
-        snprintf(wifi_text, sizeof(wifi_text), "%s (%d dBm)", 
-                 (char*)ap->ssid, ap->rssi);
-        
-        // Agregar botón a la lista
-        lv_obj_t *btn = lv_list_add_btn(objects.wifi_list, 
-                                       LV_SYMBOL_WIFI, 
-                                       wifi_text);
-        
-        if (btn != NULL) {
-            // Guardar índice del AP en user_data
+        snprintf(wifi_text, sizeof(wifi_text), "%s (%d dBm)", (char*)ap->ssid, ap->rssi);
+        lv_obj_t *btn = lv_list_add_btn(objects.wifi_list, LV_SYMBOL_WIFI, wifi_text);
+        if (btn) {
             lv_obj_set_user_data(btn, (void*)(intptr_t)i);
-            
-            // Agregar callback para selección
-            lv_obj_add_event_cb(btn, wifi_selection_event_cb, 
-                               LV_EVENT_CLICKED, NULL);
+            lv_obj_add_event_cb(btn, wifi_selection_event_cb, LV_EVENT_CLICKED, NULL);
         }
     }
-    
+
     app_wifi_unlock();
     wifi_scan_in_progress = false;
     wifi_list_needs_update = false;
-    
-    ESP_LOGI(TAG, "WiFi list updated with %d networks", scan_info_result.ap_count);
+    ESP_LOGI(TAG, "WiFi list updated with %d networks", info->ap_count);
 }
 
 // Callback para cuando se selecciona una red WiFi
@@ -98,17 +98,18 @@ static void wifi_selection_event_cb(lv_event_t * e)
     lv_obj_t * btn = lv_event_get_target(e);
     int ap_index = (int)(intptr_t)lv_obj_get_user_data(btn);
     
-    ui_bridge_select_wifi_network(ap_index);
+    ui_wifi_bridge_select_network(ap_index);
 }
 
-void ui_bridge_select_wifi_network(int ap_index)
+void ui_wifi_bridge_select_network(int ap_index)
 {
-    if (ap_index < 0 || ap_index >= scan_info_result.ap_count) {
+    const scan_info_t *info = app_wifi_get_scan_results();
+    if (!info || ap_index < 0 || ap_index >= info->ap_count) {
         ESP_LOGE(TAG, "Invalid AP index: %d", ap_index);
         return;
     }
-    
-    char* selected_ssid = (char*)scan_info_result.ap_info[ap_index].ssid;
+
+    char* selected_ssid = (char*)info->ap_info[ap_index].ssid;
     ESP_LOGI(TAG, "WiFi network selected: %s", selected_ssid);
     
     // TODO: Aquí puedes agregar lógica para:
@@ -123,7 +124,7 @@ void ui_bridge_select_wifi_network(int ap_index)
 void action_wifi_update_list(lv_event_t *e)
 {
     ESP_LOGI(TAG, "WiFi update list action triggered from EEZ Studio");
-    ui_bridge_start_wifi_scan();
+    ui_wifi_bridge_request_scan();
 }
 
 // Función para manejar la acción de conectar WiFi desde EEZ Studio
@@ -134,20 +135,21 @@ void action_wifi_update_connect(lv_event_t *e)
     // Por ahora solo log
 }
 
-void ui_bridge_process_wifi_updates(void)
+void ui_wifi_bridge_process_wifi_updates(void)
 {
     // Solo verificar si el escaneo WiFi ha terminado
-    if (wifi_scan_in_progress) {
-        // Verificar estado del escaneo
-        if (scan_info_result.scan_done == WIFI_SCAN_RENEW) {
+    const scan_info_t *info = app_wifi_get_scan_results();
+    if (wifi_scan_in_progress && info) {
+        if (info->scan_done == WIFI_SCAN_RENEW) {
             wifi_list_needs_update = true;
-            app_wifi_state_set(WIFI_SCAN_IDLE); // Marcar como procesado
+            wifi_scan_in_progress = false; // Scan finalizado
+            app_wifi_state_set(WIFI_SCAN_IDLE); // marcar procesado
         }
     }
-    
-    // Actualizar lista si es necesario
-    if (wifi_list_needs_update) {
-        ui_bridge_update_wifi_list();
+
+    if (wifi_list_needs_update && wifi_bridge_has_scan_results()) {
+        ui_wifi_bridge_update_wifi_list();
+        wifi_list_needs_update = false;
     }
 }
 

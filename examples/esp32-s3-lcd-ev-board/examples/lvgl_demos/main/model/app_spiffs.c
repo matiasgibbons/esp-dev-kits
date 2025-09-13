@@ -51,22 +51,39 @@ esp_err_t app_spiffs_init(void)
 
 esp_err_t app_spiffs_create_directories(void)
 {
-    // Create logs directory
-    if (mkdir(LOGS_DIR, 0755) != 0 && errno != EEXIST) {
-        ESP_LOGW(TAG, "Failed to create logs directory");
+    /* NOTE: SPIFFS in ESP-IDF emulates a flat namespace; directory support is
+     * limited (there is no real hierarchy on-flash). On some IDF versions
+     * mkdir() will return ENOSYS. We still attempt to call mkdir() so the code
+     * can seamlessly switch to LittleFS later (which has real directories).
+     * We now log errno for easier diagnosis. */
+
+    struct dir_spec {
+        const char *path;
+        const char *label;
+    } dirs[] = {
+        { LOGS_DIR,    "logs" },
+        { CONFIG_DIR,  "config" },
+        { BACKUPS_DIR, "backups" }
+    };
+
+    for (size_t i = 0; i < sizeof(dirs)/sizeof(dirs[0]); ++i) {
+        if (mkdir(dirs[i].path, 0755) != 0) {
+            int e = errno; // capture before any other call
+            if (e == EEXIST) {
+                ESP_LOGD(TAG, "Directory already exists: %s", dirs[i].path);
+            } else if (e == ENOSYS || e == ENOTSUP) {
+                // Downgrade to INFO because this is normal for SPIFFS (flat namespace)
+                ESP_LOGI(TAG, "Directory semantics not supported on SPIFFS (path=%s); continuing in flat mode.", dirs[i].path);
+            } else {
+                ESP_LOGW(TAG, "Failed to create %s directory (path=%s, errno=%d: %s)",
+                         dirs[i].label, dirs[i].path, e, strerror(e));
+            }
+        } else {
+            ESP_LOGI(TAG, "Created directory: %s", dirs[i].path);
+        }
     }
 
-    // Create config directory
-    if (mkdir(CONFIG_DIR, 0755) != 0 && errno != EEXIST) {
-        ESP_LOGW(TAG, "Failed to create config directory");
-    }
-
-    // Create backups directory
-    if (mkdir(BACKUPS_DIR, 0755) != 0 && errno != EEXIST) {
-        ESP_LOGW(TAG, "Failed to create backups directory");
-    }
-
-    ESP_LOGI(TAG, "Directory structure created");
+    ESP_LOGI(TAG, "Directory structure processed");
     return ESP_OK;
 }
 

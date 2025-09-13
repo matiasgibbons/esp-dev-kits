@@ -21,7 +21,8 @@
 #include "app_wifi.h"
 #include "app_sntp.h"
 #include "app_weather.h"
-#include "settings.h"
+#include "app_settings.h"
+#include "event_system.h"  // Mirror de eventos al sistema central
 
 /* The examples use WiFi configuration that you can set via project configuration menu
 
@@ -62,7 +63,7 @@ static EventGroupHandle_t s_wifi_event_group;
 
 #define portTICK_RATE_MS        10
 
-static const char *TAG = "app_station";
+static const char *TAG = "app_wifi";
 static int s_retry_num = 0;
 static bool s_reconnect = true;
 
@@ -73,6 +74,11 @@ scan_info_t scan_info_result = {
     .scan_done = WIFI_SCAN_IDLE,
     .ap_count = 0,
 };
+
+const scan_info_t* app_wifi_get_scan_results(void)
+{
+    return &scan_info_result;
+}
 
 WiFi_Connect_Status wifi_connected_already(void)
 {
@@ -125,6 +131,9 @@ static void wifi_scan(void)
     app_wifi_state_set(WIFI_SCAN_BUSY);
 
     esp_err_t ret = esp_wifi_scan_start(NULL, true);
+    if (ret == ESP_OK) {
+        event_system_post_simple(EVENT_WIFI_SCAN_START, NULL, 0);
+    }
     ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_count));
     ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&number, ap_info));
     ESP_LOGI(TAG, "Total APs scanned = %u, ret:%d", ap_count, ret);
@@ -144,6 +153,7 @@ static void wifi_scan(void)
     if (ap_count && (ESP_OK == ret)) {
         scan_info_result.ap_count = (ap_count < DEFAULT_SCAN_LIST_SIZE) ? ap_count : DEFAULT_SCAN_LIST_SIZE;
         memcpy(&scan_info_result.ap_info[0], &ap_info[0], sizeof(wifi_ap_record_t)*scan_info_result.ap_count);
+        event_system_post_simple(EVENT_WIFI_SCAN_COMPLETE, NULL, 0);
     } else {
         vTaskDelay(pdMS_TO_TICKS(1000));
         ESP_LOGI(TAG, "failed return");
@@ -164,20 +174,36 @@ static void event_handler(void *arg, esp_event_base_t event_base,
         } else {
             ESP_LOGI(TAG, "sta disconnected, trying next network...");
             // Intentar siguiente red de respaldo
-            if (settings_try_next_network() == ESP_OK) {
+            app_settings_t *s = app_settings_get();
+            if (app_settings_rotate_next_network(s) == ESP_OK) {
                 s_retry_num = 0; // Reset retry counter for new network
+                wifi_config_t wifi_cfg = {0};
+                memcpy(wifi_cfg.sta.ssid, s->wifi_ssid, sizeof(wifi_cfg.sta.ssid));
+                memcpy(wifi_cfg.sta.password, s->wifi_password, sizeof(wifi_cfg.sta.password));
+                wifi_cfg.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
+                wifi_cfg.sta.pmf_cfg.capable = true;
+                wifi_cfg.sta.pmf_cfg.required = false;
+                ESP_ERROR_CHECK( esp_wifi_set_config(WIFI_IF_STA, &wifi_cfg) );
+                // Notificar cambio de settings (rotación de red activa)
+                event_system_post_simple(EVENT_SETTINGS_CHANGED, NULL, 0);
                 send_network_event(NET_EVENT_RECONNECT);
+            }
+            if (s_retry_num >= EXAMPLE_ESP_MAXIMUM_RETRY) {
+                event_system_post_simple(EVENT_WIFI_CONNECTION_FAILED, NULL, 0);
             }
         }
         xEventGroupClearBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
         xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
         wifi_connected = false;
+        event_system_post_simple(EVENT_WIFI_DISCONNECTED, NULL, 0);
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t *event = (ip_event_got_ip_t *) event_data;
         ESP_LOGI(TAG, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
         s_retry_num = 0;
         wifi_connected = true;
         xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
+        ESP_LOGI(TAG, "Publishing EVENT_WIFI_CONNECTED to event system");
+        event_system_post_simple(EVENT_WIFI_CONNECTED, NULL, 0);
     }
 }
 
@@ -187,9 +213,9 @@ static void wifi_reconnect_sta(void)
 
     wifi_config_t wifi_config = { 0 };
 
-    sys_param_t *sys_param = settings_get_parameter();
-    memcpy(wifi_config.sta.ssid, sys_param->ssid, sizeof(wifi_config.sta.ssid));
-    memcpy(wifi_config.sta.password, sys_param->password, sizeof(wifi_config.sta.password));
+    const app_settings_t *cfg = app_settings_get_const();
+    memcpy(wifi_config.sta.ssid, cfg->wifi_ssid, sizeof(wifi_config.sta.ssid));
+    memcpy(wifi_config.sta.password, cfg->wifi_password, sizeof(wifi_config.sta.password));
     
     // Configurar parámetros adicionales para evitar errores
     wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
@@ -210,9 +236,7 @@ static void wifi_reconnect_sta(void)
     ESP_ERROR_CHECK( esp_wifi_set_config(WIFI_IF_STA, &wifi_config) );
     esp_wifi_connect();
 
-    ESP_LOGI(TAG, "wifi_reconnect_sta finished.%d, %s, %d, %s", \
-             sys_param->ssid_len, wifi_config.sta.ssid,
-             sys_param->password_len, wifi_config.sta.password);
+    ESP_LOGI(TAG, "wifi_reconnect_sta finished. SSID=%s", wifi_config.sta.ssid);
 
     xEventGroupWaitBits(s_wifi_event_group, WIFI_CONNECTED_BIT, 0, 1, 5000 / portTICK_RATE_MS);
 }
@@ -244,20 +268,29 @@ static void wifi_init_sta(void)
 
     wifi_config_t wifi_config = {0}; // Inicializar toda la estructura
 
-    sys_param_t *sys_param = settings_get_parameter();
-    memcpy(wifi_config.sta.ssid, sys_param->ssid, sizeof(wifi_config.sta.ssid));
-    memcpy(wifi_config.sta.password, sys_param->password, sizeof(wifi_config.sta.password));
-    
-    // Configurar parámetros adicionales para evitar errores
-    wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
+    const app_settings_t *cfg2 = app_settings_get_const();
+    memcpy(wifi_config.sta.ssid, cfg2->wifi_ssid, sizeof(wifi_config.sta.ssid));
+    memcpy(wifi_config.sta.password, cfg2->wifi_password, sizeof(wifi_config.sta.password));
+
+    bool have_ssid = (wifi_config.sta.ssid[0] != '\0');
+    bool have_pass = (wifi_config.sta.password[0] != '\0');
+
+    // Ajustar authmode threshold: si no hay password, permitir OPEN para evitar warning
+    wifi_config.sta.threshold.authmode = have_pass ? WIFI_AUTH_WPA2_PSK : WIFI_AUTH_OPEN;
     wifi_config.sta.pmf_cfg.capable = true;
     wifi_config.sta.pmf_cfg.required = false;
 
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA) );
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config) );
-    ESP_ERROR_CHECK(esp_wifi_start() );
-    ESP_LOGI(TAG, "wifi_init_sta finished.%s:%d, %s:%d", \
-             wifi_config.sta.ssid, sys_param->ssid_len, wifi_config.sta.password, sys_param->password_len);
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
+    ESP_ERROR_CHECK(esp_wifi_start());
+    ESP_LOGI(TAG, "wifi_init_sta finished. SSID=%s (pass:%s)", wifi_config.sta.ssid, have_pass ? "yes" : "no");
+
+    if (!have_ssid) {
+        ESP_LOGW(TAG, "No WiFi SSID configurado: se omite esp_wifi_connect hasta que el usuario guarde credenciales.");
+    } else {
+        // Sólo conectar si tenemos un SSID definido
+        esp_wifi_connect();
+    }
 
     /* Waiting until either the connection is established (WIFI_CONNECTED_BIT) or connection failed for the maximum
      * number of re-tries (WIFI_FAIL_BIT). The bits are set by event_handler() (see above) */
@@ -301,26 +334,29 @@ static void network_task(void *args)
                 wifi_scan();
                 break;
             case NET_EVENT_NTP:
-                ESP_LOGI(TAG, "NET_EVENT_NTP");
-                app_sntp_init();
+                // DEPRECATED: migrado a reacción de EVENT_WIFI_CONNECTED en tareas de datos
+                ESP_LOGD(TAG, "(Deprecated) NET_EVENT_NTP ignorado - usar EVENT_WIFI_CONNECTED");
                 break;
             case NET_EVENT_WEATHER:
-                ESP_LOGI(TAG, "NET_EVENT_WEATHER");
-                // Solo solicitar clima para Rosario por defecto
-                // Las otras ubicaciones se solicitarán cuando el usuario las seleccione
-                app_weather_request(LOCATION_NUM_ROSARIO);
+                // DEPRECATED: ahora weather_task escucha EVENT_WIFI_CONNECTED / EVENT_WEATHER_UPDATE_REQUESTED
+                ESP_LOGD(TAG, "(Deprecated) NET_EVENT_WEATHER ignorado - flujo event_system");
                 break;
 
             case NET_EVENT_POWERON_SCAN:
-                sys_param_t *sys_set = settings_get_parameter();
+                const app_settings_t *sys_set = app_settings_get_const();
                 if (true == sys_set->need_hint) {
                     vTaskDelay(pdMS_TO_TICKS(500));
                     send_network_event(NET_EVENT_POWERON_SCAN);
                 } else {
                     if (true == sys_set->demo_gui) {
-                        ESP_LOGI(TAG, "NET_EVENT_POWERON_SCAN");
-                        wifi_scan();
-                        esp_wifi_connect();
+                        // Si ya hay SSID configurado, wifi_init_sta() ya inició la conexión
+                        if (app_settings_get_const()->wifi_ssid[0] != '\0') {
+                            ESP_LOGI(TAG, "NET_EVENT_POWERON_SCAN: SSID configurado, conexión automática ya iniciada");
+                            // No hacer nada, wifi_init_sta() ya llamó esp_wifi_connect()
+                        } else {
+                            ESP_LOGI(TAG, "NET_EVENT_POWERON_SCAN: sin SSID, ejecutando scan inicial");
+                            wifi_scan();
+                        }
                     }
                 }
                 wifi_connected = false;
@@ -330,23 +366,28 @@ static void network_task(void *args)
             }
         }
 
+        // Eliminado fetch periódico legacy basado en NET_EVENT_WEATHER.
+        // El weather_task realiza su propio throttling y fetch periódico independiente del mini sistema WiFi.
         if ((xTaskGetTickCount() - tick) > (5 * 60 * 1000)) {
             tick = xTaskGetTickCount();
-            if (wifi_connected) {
-                send_network_event(NET_EVENT_WEATHER);
-            }
+            // Intencionalmente vacío.
         }
         if (wifi_status != wifi_connected_already()) {
             wifi_status = wifi_connected_already();
             ESP_LOGI(TAG, "wifi_connected changed:[%d]", wifi_status);
             app_wifi_state_set(WIFI_SCAN_UPDATE);
             if (wifi_connected) {
-                send_network_event(NET_EVENT_NTP);
-                send_network_event(NET_EVENT_WEATHER);
+                // Antes disparaba NET_EVENT_NTP / NET_EVENT_WEATHER. Ahora los consumidores reaccionan a EVENT_WIFI_CONNECTED.
+                // NTP: mover a un handler dedicado en system/weather task si se requiere.
             }
         }
     }
     vTaskDelete(NULL);
+}
+
+// Nuevo helper de consulta de estado (para módulos modelo que no quieren incluir FreeRTOS bits)
+bool app_wifi_is_connected(void) {
+    return wifi_connected;
 }
 
 bool app_wifi_lock(uint32_t timeout_ms)

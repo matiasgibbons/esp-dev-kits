@@ -61,23 +61,10 @@ void ui_weather_bridge_update_measurement_time(const char* last_update);
 void ui_weather_bridge_update_location(const char* location);
 
 /**
- * @brief Solicitar actualización del clima para ubicación personalizada
- * @param country_code Código del país (ej: "ES", "AR")
- * @param postal_code Código postal
- */
-void ui_weather_bridge_request_custom_weather(const char* country_code, const char* postal_code);
-
-/**
  * @brief Verificar y procesar actualizaciones pendientes del clima
  * @note Llamar desde el loop principal o tick
  */
 void ui_weather_bridge_process_weather_updates(void);
-
-/**
- * @brief Función para llamar cuando se entra a la pestaña de clima
- * @note Puedes llamar esto desde una acción en EEZ Studio
- */
-void ui_weather_bridge_on_weather_tab_enter(void);
 
 /**
  * @brief Obtener el icono del clima según el código WMO
@@ -97,11 +84,6 @@ void ui_weather_bridge_set_periodic_update(bool enabled);
  * @return true si está habilitada, false si está deshabilitada
  */
 bool ui_weather_bridge_get_periodic_update(void);
-
-/**
- * @brief Función para forzar actualización del clima (solo ubicaciones predefinidas)
- */
-void ui_weather_bridge_force_weather_update(void);
 
 /**
  * @brief Función para forzar actualización inmediata del clima

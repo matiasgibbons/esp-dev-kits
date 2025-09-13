@@ -1,5 +1,7 @@
 # Arquitectura MVC para ESP32 LVGL + EEZ Studio
 
+# Arquitectura MVC para ESP32 LVGL + EEZ Studio
+
 ## Estructura
 
 **VISTA:** screens.c (autogenerado por EEZ Studio) → carpeta `\main\view\src_ui\`  
@@ -11,8 +13,8 @@
 ### En EEZ Studio:
 1. Usuario humano diseña pantallas UI visualmente
 2. Agregar **Acciones** para eventos de usuario:
-   - `action_pais_onchange`
-   - `action_codigo_postal_onchange`
+   - `action_xxx`
+   - `action_xxx`
 
 3. EEZ autogenera `screens.c` con manejadores de eventos
 

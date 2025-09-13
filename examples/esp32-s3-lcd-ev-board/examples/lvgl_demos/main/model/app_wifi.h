@@ -32,8 +32,8 @@ typedef enum {
     NET_EVENT_NONE = 0,
     NET_EVENT_RECONNECT,
     NET_EVENT_SCAN,
-    NET_EVENT_NTP,
-    NET_EVENT_WEATHER,
+    NET_EVENT_NTP,      // DEPRECATED - usar EVENT_WIFI_CONNECTED
+    NET_EVENT_WEATHER,  // DEPRECATED - usar EVENT_WIFI_CONNECTED / EVENT_WEATHER_UPDATE_REQUESTED
     NET_EVENT_POWERON_SCAN,
     NET_EVENT_MAX,
 } net_event_t;
@@ -50,11 +50,20 @@ esp_err_t send_network_event(net_event_t event);
 WiFi_Connect_Status wifi_connected_already(void);
 esp_err_t app_wifi_get_wifi_ssid(char *ssid, size_t len);
 
+/**
+ * @brief Obtener resultados actuales de escaneo WiFi (lectura solo)
+ * @return Puntero constante a estructura con resultados (puede ser NULL si no inicializado)
+ */
+const scan_info_t* app_wifi_get_scan_results(void);
+
 void app_network_start(void);
 
 bool app_wifi_lock(uint32_t timeout_ms);
 void app_wifi_unlock(void);
 void app_wifi_state_set(wifi_scan_status_t status);
+
+// Estado de conexión WiFi actual (true si IP obtenida)
+bool app_wifi_is_connected(void);
 
 #ifdef __cplusplus
 }

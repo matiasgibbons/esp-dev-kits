@@ -144,14 +144,6 @@
         "native": true
       },
       {
-        "objID": "8c7987dc-1369-4333-dcc6-23309cb250a7",
-        "name": "wh_geocoding_results",
-        "type": "string",
-        "defaultValue": "\"\"",
-        "persistent": false,
-        "native": true
-      },
-      {
         "objID": "dace1508-6125-425c-ac57-d657c242592d",
         "name": "wh_geocoding_city",
         "type": "string",
@@ -846,7 +838,7 @@
                   "type": "LVGLLabelWidget",
                   "left": 412,
                   "top": -4,
-                  "width": 34,
+                  "width": 33,
                   "height": 16,
                   "customInputs": [],
                   "customOutputs": [],
@@ -3899,7 +3891,7 @@
             {
               "objID": "fea78eca-0a79-455d-b75a-cd778ea20e9d",
               "type": "LVGLLabelWidget",
-              "left": 10,
+              "left": 9,
               "top": 5,
               "width": 125,
               "height": 16,
