@@ -8,7 +8,7 @@ Sistema embebido ESP32-S3 con display LCD para control de dispositivos, con cone
 
 ## Arquitectura de Tareas Principales
 
-### **NETWORK_TASK** (Conectividad WiFi y Servicios de Red)
+### **TASK_NETWORK** (Conectividad WiFi y Servicios de Red)
 
 #### 1. Conexión WiFi
 - **a.** Estado (conectado/desconectado/escaneando)
@@ -45,7 +45,7 @@ Sistema embebido ESP32-S3 con display LCD para control de dispositivos, con cone
 
 ---
 
-### **BLE_TASK** (Conectividad Bluetooth Low Energy)
+### **TASK_BLE** (Conectividad Bluetooth Low Energy)
 
 #### 0. Conexión BLE
 - **a.** Estado (advertising/conectado/desconectado)
@@ -67,7 +67,7 @@ Sistema embebido ESP32-S3 con display LCD para control de dispositivos, con cone
 
 ---
 
-### **USART_TASK** (Comunicación con Hardware Externo)
+### **TASK_USART** (Comunicación con Hardware Externo)
 
 #### 0. Comunicación Serial
 - **a.** Envío de estado del sistema
@@ -79,7 +79,7 @@ Sistema embebido ESP32-S3 con display LCD para control de dispositivos, con cone
 
 ---
 
-### **DEVICE_TASK** (Lógica Principal del Dispositivo)
+### **TASK_DEVICE** (Lógica Principal del Dispositivo)
 
 #### 0. Estado Detenido (Standby)
 - **a.** Monitoreo básico de hardware externo (GPIO o USART)
@@ -106,7 +106,7 @@ Sistema embebido ESP32-S3 con display LCD para control de dispositivos, con cone
 
 ---
 
-### **SYSTEM_TASK** (Gestión del Sistema)
+### **TASK_SYSTEM** (Gestión del Sistema)
 
 #### 0. Gestión de Memoria y Almacenamiento
 - **a.** Carga de configuración desde NVS/SPIFFS
@@ -133,7 +133,7 @@ Sistema embebido ESP32-S3 con display LCD para control de dispositivos, con cone
 - **c.** Optimización de frecuencias de CPU
 ---
 
-### **UI_TASK** (Interfaz de Usuario)
+### **TASK_UI** (Interfaz de Usuario)
 
 #### 0. Gestión de Display
 - **a.** Actualización de pantallas y widgets
